@@ -212,7 +212,7 @@ export default function Batch() {
       urlLogRef.current.push(`${statusPrefix} hoàn thành: Tổng ${totalItemsForUrl}, Đã tải ${haveItemsForUrl}, Trang ${pagesLoaded}, Thời gian ${durationUrlStr}`)
 
 
-      if (i < shuffledUrlList.length - 1) { setStatus(`Đã hoàn thành ${i + 1}/${shuffledUrlList.length}. Đang chờ 1 giây...`); await sleep(5000) }
+      if (i < shuffledUrlList.length - 1) { setStatus(`Đã hoàn thành ${i + 1}/${shuffledUrlList.length}. Đang chờ 1 giây...`); await sleep(1000) }
     }
 
     const durationStr = new Date(Date.now() - startTime).toISOString().substr(11, 8)

@@ -11,6 +11,7 @@ export default function App() {
         <NavLink to="/compare" className={({ isActive }) => isActive ? 'active' : ''}>Compare</NavLink>
         <NavLink to="/split" className={({ isActive }) => isActive ? 'active' : ''}>Split</NavLink>
         <NavLink to="/test" className={({ isActive }) => isActive ? 'active' : ''}>Test</NavLink>
+        <NavLink to="/tiktok" className={({ isActive }) => isActive ? 'active' : ''}>TikTok</NavLink>
       </nav>
       <main className="content">
         <Outlet />

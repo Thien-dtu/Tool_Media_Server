@@ -52,3 +52,7 @@ When responding to questions, use the Chain of Thought method. Outline a detaile
 **Code change = potential for bugs and technical debt.**
 
 Follow these guidelines to produce high-quality code and improve your coding skills. If you have any questions or need clarification, don’t hesitate to ask!
+
+# Security Analysis Guidelines
+
+When asked to perform a security scan, always use the Snyk MCP server. Prioritize reporting high-severity vulnerabilities first. For any identified dependency vulnerabilities, suggest updated versions that resolve the issue.
