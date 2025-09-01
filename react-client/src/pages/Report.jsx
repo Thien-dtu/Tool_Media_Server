@@ -9,18 +9,22 @@ import {
   Legend,
 } from 'chart.js'
 import dayjs from 'dayjs'
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import ReportUploader from '../components/report/ReportUploader.jsx'
 import ReportFilters from '../components/report/ReportFilters.jsx'
 import ReportChart from '../components/report/ReportChart.jsx'
 import ReportTable from '../components/report/ReportTable.jsx'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
+dayjs.extend(isSameOrAfter)
+dayjs.extend(isSameOrBefore)
 
 export default function Report() {
   const defaultFilters = {
     apiName: '',
-    date: '',
-    dateGranularity: 'month',
+    startDate: '',
+    endDate: '',
     usernames: [],
     topN: 99999,
     sortBy: 'total',
@@ -37,15 +41,11 @@ export default function Report() {
   const filterData = () => {
     let filtered = data
     if (filters.apiName) filtered = filtered.filter(item => item.apiName === filters.apiName)
-    if (filters.date && filters.dateGranularity) {
-      filtered = filtered.filter(item => {
-        const itemDate = dayjs(item.timestamp)
-        if (filters.dateGranularity === 'day') return itemDate.format('YYYY-MM-DD') === filters.date
-        if (filters.dateGranularity === 'week') return itemDate.week() === dayjs(filters.date).week() && itemDate.year() === dayjs(filters.date).year()
-        if (filters.dateGranularity === 'month') return itemDate.format('YYYY-MM') === dayjs(filters.date).format('YYYY-MM')
-        if (filters.dateGranularity === 'year') return itemDate.format('YYYY') === dayjs(filters.date).format('YYYY')
-        return true
-      })
+    if (filters.startDate) {
+      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrAfter(dayjs(filters.startDate)))
+    }
+    if (filters.endDate) {
+      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
     }
     if (filters.usernames.length > 0 && !filters.usernames.includes('all')) {
       filtered = filtered.filter(item => item.report.some(r => filters.usernames.includes(r.username)))
@@ -68,8 +68,16 @@ export default function Report() {
 
   const filteredUniqueCounts = useMemo(() => {
     const userIdSet = {}
-    data.forEach(item => {
-      if (filters.apiName && item.apiName !== filters.apiName) return
+    let filtered = data
+    if (filters.apiName) filtered = filtered.filter(item => item.apiName === filters.apiName)
+    if (filters.startDate) {
+      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrAfter(dayjs(filters.startDate)))
+    }
+    if (filters.endDate) {
+      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
+    }
+
+    filtered.forEach(item => {
       item.report.forEach(r => {
         if (filters.searchUsername && !r.username.toLowerCase().includes(filters.searchUsername.toLowerCase())) return
         if (!userIdSet[r.username]) userIdSet[r.username] = new Set()
@@ -101,14 +109,14 @@ export default function Report() {
           <ReportTable rows={filtered} />
 
           <div className="mt">
-            <h3>Filtered Monthly Unique Post Count (by IDs)</h3>
+            <h3>Filtered Unique Post Count (by IDs)</h3>
             <table>
               <thead>
-                <tr><th>Username</th><th>Month</th><th>Unique Posts</th></tr>
+                <tr><th>Username</th><th>Date Range</th><th>Unique Posts</th></tr>
               </thead>
               <tbody>
                 {filteredUniqueCounts.map(({ username, count }) => (
-                  <tr key={username}><td>{username}</td><td>{filters.date || 'All'}</td><td>{count}</td></tr>
+                  <tr key={username}><td>{username}</td><td>{filters.startDate && filters.endDate ? `${filters.startDate} - ${filters.endDate}` : 'All'}</td><td>{count}</td></tr>
                 ))}
               </tbody>
             </table>

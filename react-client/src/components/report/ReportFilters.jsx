@@ -10,15 +10,8 @@ export default function ReportFilters({ filters, uniqueApis, onChange, onReset }
         </label>
       </div>
       <div>
-        <label>Date <input type="date" value={filters.date} onChange={e => onChange({ date: e.target.value })} /></label>
-        <label>Granularity
-          <select value={filters.dateGranularity} onChange={e => onChange({ dateGranularity: e.target.value })}>
-            <option value="day">Day</option>
-            <option value="week">Week</option>
-            <option value="month">Month</option>
-            <option value="year">Year</option>
-          </select>
-        </label>
+        <label>Start Date <input type="date" value={filters.startDate} onChange={e => onChange({ startDate: e.target.value })} /></label>
+        <label>End Date <input type="date" value={filters.endDate} onChange={e => onChange({ endDate: e.target.value })} /></label>
       </div>
       <div>
         <label>Top N <input type="number" min={1} value={filters.topN} onChange={e => onChange({ topN: parseInt(e.target.value) || 10 })} /></label>
