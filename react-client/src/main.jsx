@@ -10,6 +10,7 @@ import Compare from './pages/Compare.jsx'
 import Split from './pages/Split.jsx'
 import Test from './pages/Test.jsx'
 import TiktokDataViewer from './pages/TiktokDataViewer.jsx'
+import StoryViewer from './pages/StoryViewer.jsx'
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { path: 'split', element: <Split /> },
       { path: 'test', element: <Test /> },
       { path: 'tiktok', element: <TiktokDataViewer /> },
+      { path: 'stories', element: <StoryViewer /> },
     ],
   },
 ])
