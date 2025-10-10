@@ -13,6 +13,8 @@ export default function App() {
         <NavLink to="/test" className={({ isActive }) => isActive ? 'active' : ''}>Test</NavLink>
         <NavLink to="/tiktok" className={({ isActive }) => isActive ? 'active' : ''}>TikTok</NavLink>
         <NavLink to="/stories" className={({ isActive }) => isActive ? 'active' : ''}>Stories</NavLink>
+        <NavLink to="/following" className={({ isActive }) => isActive ? 'active' : ''}>Following</NavLink>
+        <NavLink to="/following-urls" className={({ isActive }) => isActive ? 'active' : ''}>Following URLs</NavLink>
       </nav>
       <main className="content">
         <Outlet />

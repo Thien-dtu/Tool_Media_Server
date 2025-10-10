@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 export default function CountDisplay({ results, savedSet, downloadedIds }) {
   const totalItems = results.length
   const savedItems = results.filter(item => savedSet.has(`${item.username}|${item.id}`)).length
@@ -19,6 +21,38 @@ export default function CountDisplay({ results, savedSet, downloadedIds }) {
     }
     return acc
   }, {})
+
+  // Base entries for sorting
+  const baseEntries = Object.entries(userStats)
+
+  // Sorting controls and logic
+  const [sortField, setSortField] = useState('total') // 'username' | 'total' | 'saved' | 'downloaded' | 'new'
+  const [sortDir, setSortDir] = useState('desc') // 'asc' | 'desc'
+
+  const sortedEntries = [...baseEntries].sort((a, b) => {
+    const [userA, statsA] = a
+    const [userB, statsB] = b
+    const newA = statsA.total - statsA.saved - statsA.downloaded
+    const newB = statsB.total - statsB.saved - statsB.downloaded
+    let valA; let valB
+    switch (sortField) {
+      case 'username':
+        valA = userA.toLowerCase(); valB = userB.toLowerCase();
+        if (valA < valB) return sortDir === 'asc' ? -1 : 1
+        if (valA > valB) return sortDir === 'asc' ? 1 : -1
+        return 0
+      case 'saved':
+        valA = statsA.saved; valB = statsB.saved; break
+      case 'downloaded':
+        valA = statsA.downloaded; valB = statsB.downloaded; break
+      case 'new':
+        valA = newA; valB = newB; break
+      case 'total':
+      default:
+        valA = statsA.total; valB = statsB.total; break
+    }
+    return sortDir === 'asc' ? (valA - valB) : (valB - valA)
+  })
 
   return (
     <div className="count-display">
@@ -47,8 +81,32 @@ export default function CountDisplay({ results, savedSet, downloadedIds }) {
       {Object.keys(userStats).length > 0 && (
         <div className="user-stats">
           <h3>Chi tiết theo người dùng</h3>
+          <div className="stat-grid" style={{ marginBottom: 8 }}>
+            <div className="stat-item">
+              <span className="stat-label">Sắp xếp theo</span>
+              <select value={sortField} onChange={e => setSortField(e.target.value)} style={{ width: 140 }}>
+                <option value="total">Tổng</option>
+                <option value="saved">Đã lưu</option>
+                <option value="downloaded">Mới tải</option>
+                <option value="new">Chưa tải</option>
+                <option value="username">Username</option>
+              </select>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Thứ tự</span>
+              <select value={sortDir} onChange={e => setSortDir(e.target.value)} style={{ width: 140 }}>
+                <option value="desc">Giảm dần</option>
+                <option value="asc">Tăng dần</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+              Hiển thị {sortedEntries.length}/{Object.keys(userStats).length} người dùng
+            </span>
+          </div>
           <div className="user-list">
-            {Object.entries(userStats).map(([username, stats]) => (
+            {sortedEntries.map(([username, stats]) => (
               <div key={username} className="user-stat">
                 <div className="username">{username}</div>
                 <div className="user-numbers">

@@ -11,6 +11,8 @@ import Split from './pages/Split.jsx'
 import Test from './pages/Test.jsx'
 import TiktokDataViewer from './pages/TiktokDataViewer.jsx'
 import StoryViewer from './pages/StoryViewer.jsx'
+import Following from './pages/Following.jsx'
+import FollowingUrls from './pages/FollowingUrls.jsx'
 
 const router = createBrowserRouter([
   {
@@ -25,6 +27,8 @@ const router = createBrowserRouter([
       { path: 'test', element: <Test /> },
       { path: 'tiktok', element: <TiktokDataViewer /> },
       { path: 'stories', element: <StoryViewer /> },
+      { path: 'following', element: <Following /> },
+      { path: 'following-urls', element: <FollowingUrls /> },
     ],
   },
 ])
