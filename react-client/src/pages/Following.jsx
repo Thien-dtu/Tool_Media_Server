@@ -62,7 +62,7 @@ export default function Following() {
     if (!followingData?.relationships_following) return []
 
     let filtered = followingData.relationships_following.filter(item => {
-      const username = item.string_list_data?.[0]?.value || ''
+      const username = item.title || ''
       return username.toLowerCase().includes(searchTerm.toLowerCase())
     })
 
@@ -73,8 +73,8 @@ export default function Following() {
         aValue = a.string_list_data?.[0]?.timestamp || 0
         bValue = b.string_list_data?.[0]?.timestamp || 0
       } else {
-        aValue = a.string_list_data?.[0]?.value || ''
-        bValue = b.string_list_data?.[0]?.value || ''
+        aValue = a.title  || ''
+        bValue = b.title  || ''
       }
 
       if (sortOrder === 'asc') {
@@ -178,7 +178,7 @@ export default function Following() {
                         rel="noopener noreferrer"
                         style={{ textDecoration: 'none', color: '#0066cc' }}
                       >
-                        @{userData.value}
+                        @{item.title}
                       </a>
                     </h4>
                     <p style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>

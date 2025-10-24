@@ -37,7 +37,8 @@ export default function FollowingUrls() {
       // Extract URLs and join with commas
       if (data?.relationships_following) {
         const extractedUrls = data.relationships_following
-          .map(item => item.string_list_data?.[0]?.href)
+          // .map(item => `https://www.instagram.com/${item.title}`)
+          .map(item => `https://www.instagram.com/${item.title}`)
           .filter(Boolean)
         setUrls(extractedUrls.join(','))
       }

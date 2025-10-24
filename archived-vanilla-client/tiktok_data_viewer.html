@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Data Viewer - wendy_chanz0102</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff0050 0%, #ff6b35 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff0050;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .content-section {
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #ff0050;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .video-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .video-cover {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+
+        .video-info {
+            padding: 20px;
+        }
+
+        .video-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .video-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .video-hashtags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .hashtag {
+            background: #ff0050;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .video-meta {
+            font-size: 0.85rem;
+            color: #888;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .author-section {
+            background: #f8f9fa;
+            padding: 30px;
+            margin: 20px 0;
+            border-radius: 15px;
+        }
+
+        .author-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .author-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #ff0050;
+        }
+
+        .author-details h3 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .author-signature {
+            color: #666;
+            font-style: italic;
+        }
+
+        .author-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .author-stat {
+            text-align: center;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .author-stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff0050;
+        }
+
+        .author-stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .search-filter {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #ff0050;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: #ff0050;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            background: #d40040;
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #ff0050;
+            font-size: 1.2rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .page-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #ff0050;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover {
+            background: #d40040;
+        }
+
+        .page-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 20px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .author-info {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .json-viewer {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .json-toggle {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .json-toggle:hover {
+            background: #555;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .file-upload-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #ff0050;
+        }
+
+        .upload-area p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .upload-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 25px;
+            background: #ff0050;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .upload-btn:hover {
+            background: #d40040;
+        }
+
+        .upload-hint {
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 TikTok Data Viewer</h1>
+            <p>Comprehensive analysis of wendy_chanz0102's TikTok content</p>
+        </div>
+
+        <div class="search-filter">
+            <input type="text" class="search-input" placeholder="Search videos, hashtags, or content..." id="searchInput">
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All Videos</button>
+                <button class="filter-btn" data-filter="pinned">Pinned</button>
+                <button class="filter-btn" data-filter="recent">Recent</button>
+                <button class="filter-btn" data-filter="popular">Popular</button>
+            </div>
+        </div>
+
+        <div class="file-upload-section" id="fileUploadSection">
+            <div class="section-title">📁 Load Data</div>
+            <div class="upload-area">
+                <p>Since you're opening this page directly from your file system, please upload the JSON file:</p>
+                <input type="file" id="jsonFileInput" accept=".json" style="margin: 15px 0;">
+                <button class="upload-btn" id="uploadBtn">Load TikTok Data</button>
+                <p class="upload-hint">Or drag and drop the wendy_chanz0102.raw.json file here</p>
+            </div>
+        </div>
+
+        <div class="stats-overview" id="statsOverview">
+            <div class="stat-card">
+                <div class="stat-number" id="totalVideos">-</div>
+                <div class="stat-label">Total Videos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalViews">-</div>
+                <div class="stat-label">Total Views</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalLikes">-</div>
+                <div class="stat-label">Total Likes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalComments">-</div>
+                <div class="stat-label">Total Comments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalShares">-</div>
+                <div class="stat-label">Total Shares</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalCollections">-</div>
+                <div class="stat-label">Total Collections</div>
+            </div>
+        </div>
+
+        <div class="author-section">
+            <div class="section-title">👤 Author Information</div>
+            <div class="author-info" id="authorInfo">
+                <div class="loading">Loading author information...</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-title">📹 Videos</div>
+            <div class="video-grid" id="videoGrid">
+                <div class="loading">Loading videos...</div>
+            </div>
+            
+            <div class="pagination" id="pagination">
+                <button class="page-btn" id="prevBtn" disabled>Previous</button>
+                <div class="page-info">
+                    <span id="pageInfo">Page 1 of 1</span>
+                </div>
+                <button class="page-btn" id="nextBtn" disabled>Next</button>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-title">🔍 Raw Data</div>
+            <button class="json-toggle" id="jsonToggle">Show/Hide Raw JSON Data</button>
+            <div class="json-viewer hidden" id="jsonViewer">
+                <pre id="jsonContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tiktokData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const videosPerPage = 12;
+
+        // Load and parse the JSON data
+        async function loadTikTokData() {
+            try {
+                const response = await fetch('data/tiktok/wendy_chanz0102.raw.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load data');
+                }
+                tiktokData = await response.json();
+                filteredData = [...tiktokData];
+                
+                updateStats();
+                updateAuthorInfo();
+                displayVideos();
+                updatePagination();
+                
+                // Store raw JSON for viewing
+                document.getElementById('jsonContent').textContent = JSON.stringify(tiktokData, null, 2);
+                
+                // Hide upload section after successful load
+                document.getElementById('fileUploadSection').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                // Show upload section when fetch fails
+                document.getElementById('fileUploadSection').style.display = 'block';
+                document.getElementById('videoGrid').innerHTML = `
+                    <div class="error">
+                        <p>Error loading TikTok data: ${error.message}</p>
+                        <p>Please use the file upload option above to load your JSON data.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Handle file upload
+        function handleFileUpload(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    tiktokData = JSON.parse(e.target.result);
+                    filteredData = [...tiktokData];
+                    
+                    updateStats();
+                    updateAuthorInfo();
+                    displayVideos();
+                    updatePagination();
+                    
+                    // Store raw JSON for viewing
+                    document.getElementById('jsonContent').textContent = JSON.stringify(tiktokData, null, 2);
+                    
+                    // Hide upload section after successful load
+                    document.getElementById('fileUploadSection').style.display = 'none';
+                    
+                    // Show success message
+                    document.getElementById('videoGrid').innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #28a745; font-size: 1.1rem;">
+                            ✅ Data loaded successfully! ${tiktokData.length} videos found.
+                        </div>
+                    `;
+                    
+                    // Display videos after a brief delay
+                    setTimeout(() => {
+                        displayVideos();
+                    }, 1000);
+                    
+                } catch (error) {
+                    alert('Error parsing JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Handle drag and drop
+        function setupDragAndDrop() {
+            const uploadArea = document.querySelector('.upload-area');
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ff0050';
+                uploadArea.style.backgroundColor = '#fff5f5';
+            });
+            
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ccc';
+                uploadArea.style.backgroundColor = 'transparent';
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ccc';
+                uploadArea.style.backgroundColor = 'transparent';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'application/json') {
+                    handleFileUpload(files[0]);
+                } else {
+                    alert('Please drop a valid JSON file.');
+                }
+            });
+        }
+
+        // Update statistics overview
+        function updateStats() {
+            const stats = {
+                totalVideos: tiktokData.length,
+                totalViews: tiktokData.reduce((sum, video) => sum + (video.stats?.playCount || 0), 0),
+                totalLikes: tiktokData.reduce((sum, video) => sum + (video.stats?.diggCount || 0), 0),
+                totalComments: tiktokData.reduce((sum, video) => sum + (video.stats?.commentCount || 0), 0),
+                totalShares: tiktokData.reduce((sum, video) => sum + (video.stats?.shareCount || 0), 0),
+                totalCollections: tiktokData.reduce((sum, video) => sum + (video.stats?.collectCount || 0), 0)
+            };
+
+            document.getElementById('totalVideos').textContent = stats.totalVideos.toLocaleString();
+            document.getElementById('totalViews').textContent = stats.totalViews.toLocaleString();
+            document.getElementById('totalLikes').textContent = stats.totalLikes.toLocaleString();
+            document.getElementById('totalComments').textContent = stats.totalComments.toLocaleString();
+            document.getElementById('totalShares').textContent = stats.totalShares.toLocaleString();
+            document.getElementById('totalCollections').textContent = stats.totalCollections.toLocaleString();
+        }
+
+        // Update author information
+        function updateAuthorInfo() {
+            if (tiktokData.length === 0) return;
+            
+            const author = tiktokData[0].author;
+            const stats = tiktokData[0].authorStats;
+            
+            document.getElementById('authorInfo').innerHTML = `
+                <img src="${author.avatarLarger}" alt="${author.nickname}" class="author-avatar" 
+                     onerror="this.src='https://via.placeholder.com/80x80/ff0050/ffffff?text=?'">
+                <div class="author-details">
+                    <h3>${author.nickname}</h3>
+                    <p class="author-signature">${author.signature}</p>
+                    <p><strong>Username:</strong> @${author.uniqueId}</p>
+                    <p><strong>User ID:</strong> ${author.id}</p>
+                    <p><strong>Verified:</strong> ${author.verified ? '✅ Yes' : '❌ No'}</p>
+                </div>
+                <div class="author-stats">
+                    <div class="author-stat">
+                        <div class="author-stat-number">${stats.followerCount.toLocaleString()}</div>
+                        <div class="author-stat-label">Followers</div>
+                    </div>
+                    <div class="author-stat">
+                        <div class="author-stat-number">${stats.followingCount.toLocaleString()}</div>
+                        <div class="author-stat-label">Following</div>
+                    </div>
+                    <div class="author-stat">
+                        <div class="author-stat-number">${stats.videoCount.toLocaleString()}</div>
+                        <div class="author-stat-label">Videos</div>
+                    </div>
+                    <div class="author-stat">
+                        <div class="author-stat-number">${stats.heartCount.toLocaleString()}</div>
+                        <div class="author-stat-label">Total Hearts</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display videos with pagination
+        function displayVideos() {
+            const startIndex = (currentPage - 1) * videosPerPage;
+            const endIndex = startIndex + videosPerPage;
+            const videosToShow = filteredData.slice(startIndex, endIndex);
+            
+            const videoGrid = document.getElementById('videoGrid');
+            
+            if (videosToShow.length === 0) {
+                videoGrid.innerHTML = '<div class="error">No videos found matching your criteria.</div>';
+                return;
+            }
+            
+            videoGrid.innerHTML = videosToShow.map(video => `
+                <div class="video-card">
+                    <img src="${video.video.cover}" alt="Video cover" class="video-cover" 
+                         onerror="this.src='https://via.placeholder.com/350x200/f0f0f0/999999?text=No+Cover'">
+                    <div class="video-info">
+                        <div class="video-title">${video.desc || 'No description'}</div>
+                        <div class="video-stats">
+                            <span>👁️ ${(video.stats?.playCount || 0).toLocaleString()}</span>
+                            <span>❤️ ${(video.stats?.diggCount || 0).toLocaleString()}</span>
+                            <span>💬 ${(video.stats?.commentCount || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="video-hashtags">
+                            ${(video.challenges || []).map(challenge => 
+                                `<span class="hashtag">#${challenge.title}</span>`
+                            ).join('')}
+                        </div>
+                        <div class="video-meta">
+                            <div><strong>Duration:</strong> ${video.video.duration}s</div>
+                            <div><strong>Quality:</strong> ${video.video.definition}</div>
+                            <div><strong>Created:</strong> ${new Date(video.createTime * 1000).toLocaleDateString()}</div>
+                            <div><strong>Music:</strong> ${video.music?.title || 'Original'}</div>
+                            ${video.isPinnedItem ? '<div><strong>📌 Pinned Video</strong></div>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update pagination controls
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredData.length / videosPerPage);
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageInfo = document.getElementById('pageInfo');
+            
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        }
+
+        // Filter videos based on criteria
+        function filterVideos(filter) {
+            currentPage = 1;
+            
+            switch(filter) {
+                case 'pinned':
+                    filteredData = tiktokData.filter(video => video.isPinnedItem);
+                    break;
+                case 'recent':
+                    filteredData = [...tiktokData].sort((a, b) => b.createTime - a.createTime);
+                    break;
+                case 'popular':
+                    filteredData = [...tiktokData].sort((a, b) => (b.stats?.playCount || 0) - (a.stats?.playCount || 0));
+                    break;
+                default:
+                    filteredData = [...tiktokData];
+            }
+            
+            displayVideos();
+            updatePagination();
+        }
+
+        // Search functionality
+        function searchVideos(query) {
+            if (!query.trim()) {
+                filteredData = [...tiktokData];
+            } else {
+                const searchTerm = query.toLowerCase();
+                filteredData = tiktokData.filter(video => 
+                    video.desc?.toLowerCase().includes(searchTerm) ||
+                    video.challenges?.some(challenge => 
+                        challenge.title.toLowerCase().includes(searchTerm)
+                    ) ||
+                    video.music?.title?.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            currentPage = 1;
+            displayVideos();
+            updatePagination();
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTikTokData();
+            
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    filterVideos(e.target.dataset.filter);
+                });
+            });
+            
+            // Search input
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchVideos(e.target.value);
+                }, 300);
+            });
+            
+            // Pagination
+            document.getElementById('prevBtn').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayVideos();
+                    updatePagination();
+                }
+            });
+            
+            document.getElementById('nextBtn').addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredData.length / videosPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayVideos();
+                    updatePagination();
+                }
+            });
+            
+            // JSON toggle
+            document.getElementById('jsonToggle').addEventListener('click', () => {
+                const jsonViewer = document.getElementById('jsonViewer');
+                jsonViewer.classList.toggle('hidden');
+            });
+
+            // File upload button
+            document.getElementById('uploadBtn').addEventListener('click', () => {
+                const fileInput = document.getElementById('jsonFileInput');
+                if (fileInput.files.length > 0) {
+                    handleFileUpload(fileInput.files[0]);
+                } else {
+                    alert('Please select a JSON file to upload.');
+                }
+            });
+
+            // Setup drag and drop
+            setupDragAndDrop();
+        });
+    </script>
+</body>
+</html> 

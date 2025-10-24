@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>So sánh 2 chuỗi URL</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    textarea { width: 100%; height: 100px; margin-bottom: 10px; }
+    button { padding: 10px 20px; margin-bottom: 20px; }
+    pre { background: #f3f3f3; padding: 10px; white-space: pre-wrap; word-wrap: break-word; }
+  </style>
+</head>
+<body>
+
+  <h2>So sánh 2 chuỗi URL Instagram</h2>
+
+  <label>Chuỗi URL thứ nhất:</label><br>
+  <textarea id="input1" placeholder="Dán chuỗi URL thứ nhất vào đây"></textarea>
+
+  <label>Chuỗi URL thứ hai:</label><br>
+  <textarea id="input2" placeholder="Dán chuỗi URL thứ hai vào đây"></textarea>
+
+  <br>
+  <button onclick="compareUrls()">So sánh</button>
+
+  <h3>✅ Kết quả:</h3>
+  <p id="count"></p>
+  <pre id="result"></pre>
+
+  <script>
+    function compareUrls() {
+      const input1 = document.getElementById("input1").value.trim();
+      const input2 = document.getElementById("input2").value.trim();
+
+      const urls1 = input1.split(",").map(u => u.trim()).filter(Boolean);
+      const urls2 = new Set(input2.split(",").map(u => u.trim()).filter(Boolean));
+
+      const uniqueUrls = urls1.filter(url => !urls2.has(url));
+
+      document.getElementById("count").textContent = `Số lượng URL chỉ có trong chuỗi thứ nhất: ${uniqueUrls.length}`;
+      document.getElementById("result").textContent = uniqueUrls.length > 0
+        ? uniqueUrls.join(",")
+        : "Không có URL nào khác biệt.";
+    }
+  </script>
+
+</body>
+</html>
