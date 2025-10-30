@@ -219,7 +219,46 @@ async function migrate() {
         // Read and execute schema
         console.log('📝 Creating database schema...');
         const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
-        const statements = schema.split(';').filter(s => s.trim());
+
+        // Smart SQL parser that handles BEGIN...END blocks in triggers
+        const statements = [];
+        let currentStatement = '';
+        let inTriggerBlock = false;
+
+        for (const line of schema.split('\n')) {
+            const trimmed = line.trim();
+
+            // Skip comments and empty lines
+            if (trimmed.startsWith('--') || trimmed === '') {
+                continue;
+            }
+
+            currentStatement += line + '\n';
+
+            // Check if we're entering a trigger block
+            if (/CREATE\s+TRIGGER/i.test(trimmed)) {
+                inTriggerBlock = true;
+            }
+
+            // Check if we're exiting a trigger block
+            if (inTriggerBlock && /END;/i.test(trimmed)) {
+                statements.push(currentStatement.trim());
+                currentStatement = '';
+                inTriggerBlock = false;
+                continue;
+            }
+
+            // If not in trigger block, split on semicolons
+            if (!inTriggerBlock && trimmed.endsWith(';')) {
+                statements.push(currentStatement.trim());
+                currentStatement = '';
+            }
+        }
+
+        // Add any remaining statement
+        if (currentStatement.trim()) {
+            statements.push(currentStatement.trim());
+        }
 
         for (const statement of statements) {
             if (statement.trim()) {

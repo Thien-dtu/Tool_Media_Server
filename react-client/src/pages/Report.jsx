@@ -22,7 +22,7 @@ dayjs.extend(isSameOrBefore)
 
 export default function Report() {
   const defaultFilters = {
-    apiName: '',
+    apiName: 'get_list_ig_user_stories',
     startDate: '',
     endDate: '',
     usernames: [],
