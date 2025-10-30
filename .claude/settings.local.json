@@ -5,7 +5,8 @@
       "Bash(git commit:*)",
       "Bash(git push)",
       "Bash(npm run lint)",
-      "Bash(timeout 5 node:*)"
+      "Bash(timeout 5 node:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
