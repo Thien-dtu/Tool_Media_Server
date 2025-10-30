@@ -1,14 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const pLimit = require('p-limit');
 const { getFileTypeFromBuffer } = require('../utils/mediaUtils');
 const { formatTimestamp } = require('../utils/formatUtils');
 const { readSavedList, writeSavedList } = require('../utils/fileUtils');
 const { retryWithBackoff, shouldRetryNetworkError } = require('../utils/retryUtils');
+const { createConcurrencyLimiter } = require('../utils/concurrencyUtils');
 
-// Download concurrency limit
-const downloadLimit = pLimit(5);
+// Download concurrency limit (5 concurrent downloads)
+const downloadLimit = createConcurrencyLimiter(5);
 
 // Helper function to download a single media item
 async function downloadMediaItem(mediaItem, imageDownloadDir, videoDownloadDir, itemUsername) {

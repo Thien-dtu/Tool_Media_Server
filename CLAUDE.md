@@ -140,7 +140,7 @@ React 19 + Vite application using React Router for navigation:
 
 ### Backend
 - **Async File Operations**: All file I/O uses `fs.promises` for non-blocking operations
-- **Parallel Downloads**: Media downloads use `p-limit` with 5 concurrent downloads
+- **Parallel Downloads**: Media downloads use custom concurrency limiter with 5 concurrent downloads (see `src/utils/concurrencyUtils.js`)
 - **Batch File Writes**: Saved items list is read once and written once per download batch (vs. per-item)
 - **Retry with Exponential Backoff**: Network requests retry up to 3 times with exponential backoff (see `src/utils/retryUtils.js`)
 
