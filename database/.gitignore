@@ -1,0 +1,9 @@
+# Generated files
+username-mapping.json
+migration-log.json
+social_media.db
+social_media.db-*
+
+# Backup files
+*-old.*
+*.backup
