@@ -65,6 +65,108 @@ class Database {
     }
 
     // ============================================================
+    // USER OPERATIONS (with platform_id support)
+    // ============================================================
+
+    /**
+     * Get or create user with platform_id support
+     * @param {Object} userData - User data
+     * @param {string} userData.username - Username
+     * @param {string} [userData.platform] - 'facebook' or 'instagram'
+     * @param {string} [userData.platform_id] - UID or UUID
+     * @param {string} [userData.platform_url] - Original URL
+     * @returns {Promise<number>} - User ID
+     */
+    async getOrCreateUser(userData) {
+        const { username, platform, platform_id, platform_url } = userData;
+
+        // Try to find user by platform_id first (most reliable)
+        if (platform && platform_id) {
+            let user = await getAsync(this.db,
+                'SELECT id FROM users WHERE platform = ? AND platform_id = ?',
+                [platform, platform_id]
+            );
+            if (user) return user.id;
+        }
+
+        // Fall back to username lookup
+        let user = await getAsync(this.db,
+            'SELECT id FROM users WHERE username = ?',
+            [username]
+        );
+
+        if (user) {
+            // User exists - update platform_id if provided and not set
+            if (platform_id && platform) {
+                const existing = await getAsync(this.db,
+                    'SELECT platform_id FROM users WHERE id = ?',
+                    [user.id]
+                );
+
+                if (!existing.platform_id) {
+                    await runAsync(this.db,
+                        `UPDATE users
+                         SET platform = ?, platform_id = ?, platform_url = ?
+                         WHERE id = ?`,
+                        [platform, platform_id, platform_url, user.id]
+                    );
+                    console.log(`✅ Migrated user ${username} → ${platform}:${platform_id}`);
+                }
+            }
+            return user.id;
+        }
+
+        // Create new user
+        const result = await runAsync(this.db,
+            `INSERT INTO users (username, platform, platform_id, platform_url)
+             VALUES (?, ?, ?, ?)`,
+            [username, platform || null, platform_id || null, platform_url || null]
+        );
+        return result.lastID;
+    }
+
+    /**
+     * Update user's platform_id
+     * @param {string} username - Username
+     * @param {string} platform - 'facebook' or 'instagram'
+     * @param {string} platform_id - UID or UUID
+     * @param {string} [platform_url] - Original URL
+     * @returns {Promise<boolean>} - True if updated
+     */
+    async updateUserPlatformId(username, platform, platform_id, platform_url = null) {
+        const result = await runAsync(this.db,
+            `UPDATE users
+             SET platform = ?, platform_id = ?, platform_url = ?
+             WHERE username = ?`,
+            [platform, platform_id, platform_url, username]
+        );
+        return result.changes > 0;
+    }
+
+    /**
+     * Get user by username or platform_id
+     * @param {string} identifier - Username or platform_id
+     * @param {string} [platform] - Optional platform for platform_id lookup
+     * @returns {Promise<Object|null>} - User object or null
+     */
+    async getUser(identifier, platform = null) {
+        if (platform) {
+            // Try platform_id lookup first
+            const user = await getAsync(this.db,
+                'SELECT * FROM users WHERE platform = ? AND platform_id = ?',
+                [platform, identifier]
+            );
+            if (user) return user;
+        }
+
+        // Fall back to username lookup
+        return await getAsync(this.db,
+            'SELECT * FROM users WHERE username = ?',
+            [identifier]
+        );
+    }
+
+    // ============================================================
     // SAVED MEDIA OPERATIONS
     // ============================================================
 
@@ -104,23 +206,27 @@ class Database {
     }
 
     /**
-     * Save media item
-     * @param {string} username - User's username
+     * Save media item (with platform_id support)
+     * @param {string|Object} usernameOrData - Username string or user data object
      * @param {string} mediaId - Media ID
      * @returns {Promise<void>}
      */
-    async saveMedia(username, mediaId) {
-        // Get or create user
-        let user = await getAsync(this.db, 'SELECT id FROM users WHERE username = ?', [username]);
-        if (!user) {
-            const result = await runAsync(this.db, 'INSERT INTO users (username) VALUES (?)', [username]);
-            user = { id: result.lastID };
+    async saveMedia(usernameOrData, mediaId) {
+        // Support both old and new API
+        let userData;
+        if (typeof usernameOrData === 'string') {
+            userData = { username: usernameOrData };
+        } else {
+            userData = usernameOrData;
         }
+
+        // Get or create user (with auto-migration)
+        const userId = await this.getOrCreateUser(userData);
 
         // Insert media (ignore if already exists)
         await runAsync(this.db,
             'INSERT OR IGNORE INTO saved_media (user_id, media_id) VALUES (?, ?)',
-            [user.id, mediaId]
+            [userId, mediaId]
         );
     }
 
@@ -330,6 +436,26 @@ class Database {
      */
     async getApiPerformance() {
         return await allAsync(this.db, 'SELECT * FROM v_api_performance');
+    }
+
+    /**
+     * Get migration progress
+     * @returns {Promise<Object>} - Migration statistics
+     */
+    async getMigrationProgress() {
+        return await getAsync(this.db, 'SELECT * FROM v_migration_progress');
+    }
+
+    /**
+     * Get users needing migration
+     * @param {number} limit - Maximum users to return
+     * @returns {Promise<Array>} - Array of users without platform_id
+     */
+    async getUsersNeedingMigration(limit = 100) {
+        return await allAsync(this.db,
+            'SELECT * FROM v_users_needing_migration LIMIT ?',
+            [limit]
+        );
     }
 
     // ============================================================
