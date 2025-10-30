@@ -109,17 +109,17 @@ const TiktokDataViewer = () => {
         }
     }, [filteredData, selectedIndex]);
 
-    const stats = {
+    const stats = React.useMemo(() => ({
         totalVideos: activeTiktokData.length,
         totalViews: activeTiktokData.reduce((sum, video) => sum + (video.stats?.playCount || 0), 0),
         totalLikes: activeTiktokData.reduce((sum, video) => sum + (video.stats?.diggCount || 0), 0),
         totalComments: activeTiktokData.reduce((sum, video) => sum + (video.stats?.commentCount || 0), 0),
         totalShares: activeTiktokData.reduce((sum, video) => sum + (video.stats?.shareCount || 0), 0),
         totalCollections: activeTiktokData.reduce((sum, video) => sum + (video.stats?.collectCount || 0), 0)
-    };
+    }), [activeTiktokData]);
 
-    const author = activeTiktokData.length > 0 ? activeTiktokData[0].author : null;
-    const authorStats = activeTiktokData.length > 0 ? activeTiktokData[0].authorStats : null;
+    const author = React.useMemo(() => activeTiktokData.length > 0 ? activeTiktokData[0].author : null, [activeTiktokData]);
+    const authorStats = React.useMemo(() => activeTiktokData.length > 0 ? activeTiktokData[0].authorStats : null, [activeTiktokData]);
 
     useEffect(() => {
         let data = [...activeTiktokData];

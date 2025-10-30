@@ -136,6 +136,19 @@ React 19 + Vite application using React Router for navigation:
 3. Server serves built client from `react-client/dist` at `http://localhost:3000`
 4. Place static assets (e.g., JSON files) in `react-client/public/data/` before building to include them in dist
 
+## Performance Optimizations
+
+### Backend
+- **Async File Operations**: All file I/O uses `fs.promises` for non-blocking operations
+- **Parallel Downloads**: Media downloads use `p-limit` with 5 concurrent downloads
+- **Batch File Writes**: Saved items list is read once and written once per download batch (vs. per-item)
+- **Retry with Exponential Backoff**: Network requests retry up to 3 times with exponential backoff (see `src/utils/retryUtils.js`)
+
+### Frontend
+- **Code Splitting**: All pages use React lazy loading to reduce initial bundle size
+- **Memoization**: TikTok viewer stats are memoized with `React.useMemo` to prevent recalculation on every render
+- **Parallel Downloads**: Frontend batches downloads (5 at a time) using `Promise.all`
+
 ## Notes
 
 - CORS enabled for all origins in development (`cors({ origin: '*' })`)
@@ -143,3 +156,4 @@ React 19 + Vite application using React Router for navigation:
 - SPA fallback routes GET requests to `index.html` for client-side routing
 - WebSocket clients must register before making API calls
 - The server does NOT make external API calls directly - it relies on connected WebSocket clients to do so
+- Download timeouts: 30s for images, 60s for videos

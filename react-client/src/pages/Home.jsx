@@ -232,14 +232,28 @@ export default function Home() {
       await refreshSavedSet()
       const itemsToDownload = allResults.filter(item => !savedSet.has(`${item.username}|${item.id}`))
       if (itemsToDownload.length === 0) { setStatus('✅ Tất cả đã lưu, không có mục mới!'); return }
+
+      // Download 5 items at a time for better performance
+      const batchSize = 5
       let completed = 0
-      for (const item of itemsToDownload) {
-        try { await downloadItems({ results: [item], apiName }) } catch {}
-        completed++
-        const percent = Math.round((completed / itemsToDownload.length) * 100)
-        setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${itemsToDownload.length}` })
-        setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
+
+      for (let i = 0; i < itemsToDownload.length; i += batchSize) {
+        const batch = itemsToDownload.slice(i, i + batchSize)
+
+        // Download batch in parallel
+        await Promise.all(batch.map(async item => {
+          try {
+            await downloadItems({ results: [item], apiName })
+            completed++
+            const percent = Math.round((completed / itemsToDownload.length) * 100)
+            setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${itemsToDownload.length}` })
+            setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
+          } catch (err) {
+            console.error('Download error:', err)
+          }
+        }))
       }
+
       setStatus(`✅ Đã tải về tất cả mục mới! ${completed} / ${itemsToDownload.length}`)
     } finally {
       setTimeout(() => setIsDownloading(false), 800)

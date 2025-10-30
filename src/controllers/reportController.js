@@ -46,10 +46,15 @@ const deleteReportEntry = async (req, res) => {
         return res.status(400).json({ error: 'Missing required fields' });
     }
     try {
-        if (!fs.existsSync(filePath)) {
+        // Check if file exists (async)
+        try {
+            await fs.promises.access(filePath);
+        } catch {
             return res.status(404).json({ error: 'Report file not found.' });
         }
-        const lines = fs.readFileSync(filePath, 'utf8').split('\n').filter(Boolean);
+
+        const content = await fs.promises.readFile(filePath, 'utf8');
+        const lines = content.split('\n').filter(Boolean);
         let changed = false;
         const newLines = lines.map(line => {
             let obj;
@@ -76,7 +81,7 @@ const deleteReportEntry = async (req, res) => {
         }).filter(Boolean);
 
         if (changed) {
-            fs.writeFileSync(filePath, newLines.join('\n') + (newLines.length > 0 ? '\n' : ''), 'utf8');
+            await fs.promises.writeFile(filePath, newLines.join('\n') + (newLines.length > 0 ? '\n' : ''), 'utf8');
             return res.json({ message: 'Entry deleted.' });
         } else {
             return res.status(404).json({ error: 'Entry not found.' });
