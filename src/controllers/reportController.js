@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getDatabase } = require('../../database/db-v2');
 
 const RESULT_DIR = path.join(process.cwd(), 'data');
 
@@ -28,9 +29,28 @@ const saveIgUserStoriesReport = async (req, res) => {
     if (!apiName || !Array.isArray(report) || !timestamp) {
         return res.status(400).json({ error: 'Missing apiName, report, or timestamp' });
     }
+
+    // Save to DATABASE (new)
+    const db = getDatabase();
+    let dbConnected = false;
+    try {
+        await db.connect();
+        dbConnected = true;
+
+        // Save report to database
+        await db.saveReport(apiName, report, timestamp);
+        console.log(`💾 Saved report to database: ${apiName} at ${timestamp}`);
+
+        db.close();
+    } catch (err) {
+        console.warn('⚠️  Error saving to database, falling back to file-only:', err.message);
+    }
+
+    // Save to FILE (old - parallel write during transition)
     const filePath = path.join(RESULT_DIR, `ig_user_stories_report.jsonl`);
     try {
         fs.appendFileSync(filePath, JSON.stringify({ apiName, report, timestamp }) + '\n', 'utf8');
+        console.log(`📄 Saved report to file: ${apiName} at ${timestamp}`);
         res.json({ message: 'Report saved.' });
     } catch (e) {
         console.error('Error saving report:', e);
