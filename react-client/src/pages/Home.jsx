@@ -1,11 +1,15 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import ApiSelect from '../components/common/ApiSelect.jsx'
 import ApiParamsEditor from '../components/common/ApiParamsEditor.jsx'
 import StatusBanner from '../components/StatusBanner.jsx'
 import ProgressBars from '../components/common/ProgressBars.jsx'
 import ResultsGrid from '../components/home/ResultsGrid.jsx'
 import NearestLocationModal from '../components/common/NearestLocationModal.jsx'
+import UserReportTable from '../components/database/UserReportTable.jsx'
+import MediaGroupedByUser from '../components/database/MediaGroupedByUser.jsx'
+import UserInfoSection from '../components/database/UserInfoSection.jsx'
 import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus } from '../lib/apiClient.js'
+import { getRecentReports, getUserStats } from '../lib/dbApiClient.js'
 
 const defaultApiParams = {
   get_list_fb_user_photos: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', type: '5', cursor: '' }, null, 2),
@@ -65,6 +69,9 @@ export default function Home() {
   const [downloadingIds, setDownloadingIds] = useState(new Set())
   const [downloadedIds, setDownloadedIds] = useState(new Set())
   const [savedSet, setSavedSet] = useState(new Set())
+  const [dbReports, setDbReports] = useState([])
+  const [dbUserStats, setDbUserStats] = useState([])
+  const [showDbSection, setShowDbSection] = useState(false)
 
   const clientId = useMemo(() => (import.meta.env.VITE_CLIENT_ID), [])
   const urlLogRef = useRef([])
@@ -78,6 +85,33 @@ export default function Home() {
     const list = await fetchSavedList()
     setSavedSet(new Set(list.map(e => `${e.username}|${e.id}`)))
   }
+
+  const fetchDbReports = async () => {
+    try {
+      const { reports } = await getRecentReports(20)
+      setDbReports(reports || [])
+    } catch (err) {
+      console.error('Error fetching database reports:', err)
+    }
+  }
+
+  const fetchDbUserStats = async () => {
+    try {
+      const { users } = await getUserStats()
+      setDbUserStats(users || [])
+    } catch (err) {
+      console.error('Error fetching user stats:', err)
+    }
+  }
+
+  const refreshDbData = async () => {
+    await Promise.all([fetchDbReports(), fetchDbUserStats()])
+  }
+
+  useEffect(() => {
+    // Load database data on mount
+    refreshDbData()
+  }, [])
 
   const updateApiParamsForSelect = (name) => {
     setApiName(name)
@@ -381,6 +415,58 @@ export default function Home() {
         pagesLoaded={modal.pagesLoaded}
         onClose={(choice) => { const resolver = modal.resolve; setModal(m => ({ ...m, open: false, resolve: null })); if (resolver) resolver(choice) }}
       />
+
+      {/* Database Section */}
+      <div style={{ marginTop: '32px', borderTop: '2px solid #e5e7eb', paddingTop: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ margin: 0, color: '#111827' }}>📊 Database Reports & Users</h2>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={refreshDbData}
+              style={{
+                padding: '8px 16px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              🔄 Làm mới Database
+            </button>
+            <button
+              onClick={() => setShowDbSection(!showDbSection)}
+              style={{
+                padding: '8px 16px',
+                background: '#6366f1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              {showDbSection ? '▼ Ẩn' : '▶ Hiện'}
+            </button>
+          </div>
+        </div>
+
+        {showDbSection && (
+          <div>
+            {/* User Info Section */}
+            <UserInfoSection clientId={clientId} onUserUpdated={refreshDbData} />
+
+            {/* Reports Table */}
+            <UserReportTable reports={dbReports} />
+
+            {/* Media Grouped by User */}
+            <MediaGroupedByUser users={dbUserStats} onRefresh={fetchDbUserStats} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
