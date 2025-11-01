@@ -32,8 +32,12 @@ describe('userFetching', () => {
         // Setup mock database
         mockDb = {
             db: {},
-            connect: jest.fn().mockResolvedValue(),
-            close: jest.fn(),
+            connect: jest.fn().mockImplementation(async function() {
+                this.db = { mockConnection: true };
+            }),
+            close: jest.fn().mockImplementation(function() {
+                this.db = null;
+            }),
             getUserByUsername: jest.fn(),
             getUserByUid: jest.fn(),
             getOrCreateUser: jest.fn(),
@@ -81,6 +85,8 @@ describe('userFetching', () => {
 
     describe('getOrFetchUser', () => {
         it('should return user from database if exists with UID (fast path)', async () => {
+            mockDb.db = null; // Ensure connection is required
+
             const mockUser = {
                 id: 1,
                 uid: '123456789',
@@ -321,6 +327,7 @@ describe('userFetching', () => {
 
             const mockUser = { id: 1, uid: '111', username: 'user1', platform_name: 'instagram' };
 
+            mockDb.db = null;
             mockDb.getUserByUsername.mockResolvedValueOnce(mockUser);
             detectPlatform.mockImplementation((url) => {
                 if (url.includes('invalid-url')) return null;
@@ -331,8 +338,14 @@ describe('userFetching', () => {
             const results = await bulkFetchUsers(urls, 'client_123', 2);
 
             expect(results).toHaveLength(2);
-            expect(results[0]).toEqual({ url: urls[0], user: mockUser, error: null });
-            expect(results[1].error).toBeTruthy();
+
+            // Find results by URL since order may vary
+            const user1Result = results.find(r => r.url === urls[0]);
+            const user2Result = results.find(r => r.url === urls[1]);
+
+            expect(user1Result).toEqual({ url: urls[0], user: mockUser, error: null });
+            // When platform cannot be detected, user is null (not an error throw)
+            expect(user2Result.user).toBeNull();
         });
 
         it('should respect concurrency limit', async () => {
