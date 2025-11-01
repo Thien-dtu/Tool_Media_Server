@@ -32,18 +32,20 @@ const saveIgUserStoriesReport = async (req, res) => {
 
     // Save to DATABASE (new)
     const db = getDatabase();
-    let dbConnected = false;
+    let dbWasConnected = db.db !== null;
     try {
-        await db.connect();
-        dbConnected = true;
+        if (!dbWasConnected) {
+            await db.connect();
+        }
 
         // Save report to database
         await db.saveReport(apiName, report, timestamp);
         console.log(`💾 Saved report to database: ${apiName} at ${timestamp}`);
 
-        db.close();
+        if (!dbWasConnected) db.close();
     } catch (err) {
         console.warn('⚠️  Error saving to database, falling back to file-only:', err.message);
+        if (!dbWasConnected && db.db) db.close();
     }
 
     // Save to FILE (old - parallel write during transition)

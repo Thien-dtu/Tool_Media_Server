@@ -111,13 +111,15 @@ const handleDownload = async (req, res) => {
 
     // Initialize database connection
     const db = getDatabase();
-    let dbConnected = false;
+    let dbWasConnected = db.db !== null;
     try {
-        await db.connect();
-        dbConnected = true;
+        if (!dbWasConnected) {
+            await db.connect();
+        }
         console.log('✅ Database connected for download tracking');
     } catch (err) {
         console.warn('⚠️  Database connection failed, falling back to file-only mode:', err.message);
+        if (!dbWasConnected && db.db) db.close();
     }
 
     // Read saved list once at the beginning (for parallel write during transition)
@@ -136,10 +138,10 @@ const handleDownload = async (req, res) => {
 
         // Auto-fetch user with UID (smart caching)
         let user = null;
-        if (dbConnected) {
+        if (dbWasConnected) {
             try {
                 // Try to get/fetch user with UID
-                user = await getOrFetchUser(originalUrl || itemUsername, null, clientId);
+                user = await getOrFetchUser(item.originalUrl || itemUsername, null, clientId);
                 if (user && user.uid) {
                     console.log(`🔑 User ${itemUsername} → UID: ${user.uid}`);
                 } else {
@@ -152,7 +154,7 @@ const handleDownload = async (req, res) => {
 
         // Check if media already saved in database (if DB is connected)
         let isAlreadySaved = false;
-        if (dbConnected && user) {
+        if (dbWasConnected && user) {
             try {
                 isAlreadySaved = await db.isMediaSaved(itemUsername, item.id);
                 if (isAlreadySaved) {
@@ -243,7 +245,7 @@ const handleDownload = async (req, res) => {
                 const key = `${result.savedItem.username}|${result.savedItem.id}`;
 
                 // Save to DATABASE (new)
-                if (dbConnected && user) {
+                if (dbWasConnected && user) {
                     try {
                         await db.saveMedia(itemUsername, result.savedItem.id);
                         console.log(`💾 Saved to database: ${result.savedItem.id} for ${itemUsername}`);
@@ -301,7 +303,7 @@ const handleDownload = async (req, res) => {
     }
 
     // Close database connection
-    if (dbConnected) {
+    if (!dbWasConnected && db.db) {
         try {
             db.close();
             console.log('✅ Database connection closed');

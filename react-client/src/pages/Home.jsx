@@ -5,7 +5,7 @@ import StatusBanner from '../components/StatusBanner.jsx'
 import ProgressBars from '../components/common/ProgressBars.jsx'
 import ResultsGrid from '../components/home/ResultsGrid.jsx'
 import NearestLocationModal from '../components/common/NearestLocationModal.jsx'
-import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems } from '../lib/apiClient.js'
+import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus } from '../lib/apiClient.js'
 
 const defaultApiParams = {
   get_list_fb_user_photos: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', type: '5', cursor: '' }, null, 2),
@@ -138,7 +138,7 @@ export default function Home() {
   async function onMakeApiCall() {
     if (isFetching) return
     setIsFetching(true)
-    await refreshSavedSet()
+    // await refreshSavedSet()
     setAllResults([])
     setMultiReportHtml('')
     urlLogRef.current = []
@@ -203,9 +203,34 @@ export default function Home() {
       }
 
       const durationUrlStr = new Date(Date.now() - startUrlTime).toISOString().substr(11, 8)
-      const savedListForReport = await (async () => { try { return (await getSavedList()).list || [] } catch { return [] } })()
+      // const savedListForReport = await (async () => { try { return (await getSavedList()).list || [] } catch { return [] } })()
+      // const totalItemsForUrl = fetchedData.length
+      // const haveItemsForUrl = fetchedData.filter(item => savedListForReport.some(e => e.username === item.username && e.id === item.id)).length
+      
       const totalItemsForUrl = fetchedData.length
-      const haveItemsForUrl = fetchedData.filter(item => savedListForReport.some(e => e.username === item.username && e.id === item.id)).length
+      let haveItemsForUrl = 0;
+      
+      if (totalItemsForUrl > 0) {
+          try {
+              const mediaIds = fetchedData.map(item => item.id).filter(Boolean);
+              const savedData = await checkSavedStatus(username, mediaIds); // Gọi API check
+              
+              const savedIdsArray = savedData.saved || []; // Đây LÀ MỘT MẢNG (Array)
+              haveItemsForUrl = savedIdsArray.length; // Lấy số lượng đã lưu
+  
+              // Cập nhật state 'savedSet' với các mục mới tìm thấy
+              // Giờ chúng ta có thể .map() trên 'savedIdsArray'
+              setSavedSet(prevSet => {
+                  const newItems = savedIdsArray.map(id => `${username}|${id}`);
+                  return new Set([...prevSet, ...newItems]);
+              });
+  
+          } catch (e) {
+              console.error("Error checking saved status for report:", e);
+              // Báo cáo 0 nếu kiểm tra thất bại
+          }
+      }
+
       const reportData = { apiName, report: [{ url, username, total: totalItemsForUrl, have: haveItemsForUrl, nohave: totalItemsForUrl - haveItemsForUrl, ids: fetchedData.map(item => item.id).filter(Boolean), time: durationUrlStr, pages: pagesLoaded }], timestamp: new Date().toISOString() }
       try { await saveReport(reportData) } catch {}
 
@@ -229,8 +254,26 @@ export default function Home() {
     setIsDownloading(true)
     setProgress({ totalPct: 0, totalText: '', itemPct: 0, itemText: '' })
     try {
-      await refreshSavedSet()
-      const itemsToDownload = allResults.filter(item => !savedSet.has(`${item.username}|${item.id}`))
+      // await refreshSavedSet()
+      // const itemsToDownload = allResults.filter(item => !savedSet.has(`${item.username}|${item.id}`))
+      // Kiểm tra lại trạng thái đã lưu cho TẤT CẢ các mục trong allResults
+      const allUsernames = [...new Set(allResults.map(r => r.username))];
+      let allSavedIds = new Set();
+
+      try {
+          await Promise.all(allUsernames.map(async (user) => {
+              const idsForUser = allResults.filter(r => r.username === user).map(r => r.id).filter(Boolean);
+              const savedData = await checkSavedStatus(user, idsForUser);
+              savedData.saved.forEach(id => allSavedIds.add(`${user}|${id}`));
+          }));
+      } catch (e) {
+          console.error("Failed to check all saved statuses before download:", e);
+          setStatus('Lỗi khi kiểm tra danh sách đã lưu. Hủy tải về.', true);
+          setIsDownloading(false); // (Chỉ thêm dòng này nếu là Batch.jsx)
+          return;
+      }
+
+      const itemsToDownload = allResults.filter(item => !allSavedIds.has(`${item.username}|${item.id}`));
       if (itemsToDownload.length === 0) { setStatus('✅ Tất cả đã lưu, không có mục mới!'); return }
 
       // Download 5 items at a time for better performance
@@ -243,7 +286,7 @@ export default function Home() {
         // Download batch in parallel
         await Promise.all(batch.map(async item => {
           try {
-            await downloadItems({ results: [item], apiName })
+            await downloadItems({ results: [item], apiName, clientId })
             completed++
             const percent = Math.round((completed / itemsToDownload.length) * 100)
             setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${itemsToDownload.length}` })
@@ -264,7 +307,7 @@ export default function Home() {
     const key = `${item.username}|${item.id}`
     if (savedSet.has(key) || downloadedIds.has(key) || downloadingIds.has(key)) return
     setDownloadingIds(prev => new Set(prev).add(key))
-    try { await downloadItems({ results: [item], apiName }); setDownloadedIds(prev => new Set(prev).add(key)) }
+    try { await downloadItems({ results: [item], apiName, clientId }); setDownloadedIds(prev => new Set(prev).add(key)) }
     finally { setDownloadingIds(prev => { const n = new Set(prev); n.delete(key); return n }) }
   }
 

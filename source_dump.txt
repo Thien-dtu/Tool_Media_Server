@@ -6,11 +6,26 @@
 ## DIRECTORY STRUCTURE
 ```
 test_bak/
+├── .claude/
+│   └── settings.local.json
 ├── .git/
+├── archived-vanilla-client/
+│   ├── public/
+│   │   └── js/
+│   │       ├── api.js
+│   │       ├── download.js
+│   │       ├── main.js
+│   │       ├── ui.js
+│   │       └── utils.js
+│   ├── compare_content.html
+│   ├── index.html
+│   ├── report.html
+│   ├── split_url.html
+│   ├── test.html
+│   └── tiktok_data_viewer.html
+├── coverage/
 ├── data/
 │   ├── bak/
-│   │   ├── ig_user_stories_report.jsonl
-│   │   └── saved_images.json
 │   ├── tiktok/
 │   │   ├── duyen.00_.raw.json
 │   │   ├── helianthus.hn.raw.json
@@ -28,18 +43,15 @@ test_bak/
 │   ├── shuffled_urls_get_list_ig_post.jsonl
 │   ├── shuffled_urls_get_list_ig_user_stories.jsonl
 │   └── test_instagram.txt
+├── database/
+├── docs/
+│   ├── DATABASE_DESIGN.md
+│   └── PLATFORM_ID_INTEGRATION.md
 ├── mcp/
 │   ├── LICENSE
 │   ├── README.md
 │   └── github-mcp-server.exe
 ├── node_modules/
-├── public/
-│   └── js/
-│       ├── api.js
-│       ├── download.js
-│       ├── main.js
-│       ├── ui.js
-│       └── utils.js
 ├── react-client/
 │   ├── dist/
 │   ├── node_modules/
@@ -58,6 +70,7 @@ test_bak/
 │   │   │   │   ├── ApiSelect.jsx
 │   │   │   │   ├── ErrorBanner.jsx
 │   │   │   │   ├── ImageModal.jsx
+│   │   │   │   ├── LoadingFallback.jsx
 │   │   │   │   ├── NearestLocationModal.jsx
 │   │   │   │   └── ProgressBars.jsx
 │   │   │   ├── compare/
@@ -103,46 +116,8 @@ test_bak/
 │   ├── vite.config.js
 │   └── vite.config.js.bak
 ├── result/
-│   ├── ziji71/
-│   │   ├── image/
-│   │   │   ├── 2194826214367834.jpg
-│   │   │   └── 2194826214367834.txt
-│   │   └── video/
-│   ├── ziuu_08/
-│   │   ├── image/
-│   │   │   ├── 3695329348839386832_7147965353.jpg
-│   │   │   ├── 3695329348839386832_7147965353.txt
-│   │   │   ├── 3695329348839386832_7147965353_p1.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p2.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p3.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p4.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p5.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p6.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p7.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p8.jpg
-│   │   │   ├── 3695329348839386832_7147965353_p9.jpg
-│   │   │   ├── 3696673801336404159_7147965353.jpg
-│   │   │   ├── 3696673801336404159_7147965353.txt
-│   │   │   ├── 3696673801336404159_7147965353_p1.jpg
-│   │   │   ├── 3696673801336404159_7147965353_p2.jpg
-│   │   │   ├── 3696673801336404159_7147965353_p3.jpg
-│   │   │   ├── 3696673801336404159_7147965353_p4.jpg
-│   │   │   ├── 3696673801336404159_7147965353_p5.jpg
-│   │   │   ├── 3696673801336404159_7147965353_p6.jpg
-│   │   │   ├── 3696673801336404159_7147965353_p7.jpg
-│   │   │   └── 3696673801336404159_7147965353_p8.jpg
-│   │   └── video/
-│   │       ├── 3732392484938151578_7147965353.mp4
-│   │       ├── 3732899470469483578_7147965353.mp4
-│   │       └── 3732899768574956268_7147965353.mp4
-│   └── zuyngaan/
-│       ├── image/
-│       └── video/
-│           ├── 3690388200629434545_48020102711.mp4
-│           ├── 3695849460724423628_48020102711.mp4
-│           ├── 3695900020705378297_48020102711.mp4
-│           ├── 3697852816234117170_48020102711.mp4
-│           └── 3702594749628076278_48020102711.mp4
+├── scripts/
+│   └── migrate-all.js
 ├── src/
 │   ├── controllers/
 │   │   ├── apiController.js
@@ -154,37 +129,95 @@ test_bak/
 │   │   ├── api.js
 │   │   ├── cursor.js
 │   │   ├── download.js
+│   │   ├── pagination.js
 │   │   ├── report.js
+│   │   ├── reports.js
 │   │   └── saved.js
 │   ├── utils/
+│   │   ├── concurrencyUtils.js
 │   │   ├── fileUtils.js
 │   │   ├── formatUtils.js
 │   │   ├── glob.js
-│   │   └── mediaUtils.js
+│   │   ├── mediaUtils.js
+│   │   ├── platformIdUtils.js
+│   │   ├── retryUtils.js
+│   │   └── userFetching.js
 │   ├── ws/
 │   │   └── websocket.js
 │   ├── app.js
 │   └── main.js
+├── tests/
+│   ├── unit/
+│   │   └── utils/
+│   │       └── userFetching.test.js
+│   └── setup.js
 ├── .cursorignore
 ├── .env
 ├── .gitignore
 ├── .qoderignore
+├── CLAUDE.md
 ├── GEMINI.md
 ├── README.md
-├── compare_content.html
-├── index.html
+├── jest.config.js
 ├── package-lock.json
 ├── package.json
-├── report.html
-├── split_url.html
-├── style.css
-├── test.html
-└── tiktok_data_viewer.html
+└── style.css
 ```
 
 ## FILE CONTENTS
 
-### public\js\api.js
+### jest.config.js
+```js
+module.exports = {
+    // Test environment
+    testEnvironment: 'node',
+
+    // Test match patterns
+    testMatch: [
+        '**/tests/**/*.test.js',
+        '**/__tests__/**/*.js'
+    ],
+
+    // Coverage configuration
+    collectCoverageFrom: [
+        'src/**/*.js',
+        'database/db-v2.js',
+        '!src/main.js',
+        '!src/app.js',
+        '!src/ws/**',
+        '!**/*.test.js'
+    ],
+
+    coverageDirectory: 'coverage',
+    coverageReporters: ['text', 'lcov', 'html'],
+
+    // Coverage thresholds - per-file only for now
+    coverageThreshold: {
+        // Per-file thresholds for critical files
+        'src/utils/userFetching.js': {
+            branches: 85,
+            functions: 100,
+            lines: 90,
+            statements: 90
+        }
+    },
+
+    // Setup files
+    setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+
+    // Timeout
+    testTimeout: 30000,
+
+    // Clear mocks between tests
+    clearMocks: true,
+
+    // Verbose output
+    verbose: true
+};
+
+```
+
+### archived-vanilla-client\public\js\api.js
 ```js
 import { showStatusMessage, updateUrlStatus } from './ui.js';
 import { sleep, getUsernameFromUrl } from './utils.js';
@@ -282,7 +315,7 @@ export async function fetchApiDataForSingleUrl(apiName, apiParams, urlStatusElem
 
 ```
 
-### public\js\download.js
+### archived-vanilla-client\public\js\download.js
 ```js
 import { showStatusMessage, displayResults, fetchSavedList } from './ui.js';
 import { dom, state } from './main.js';
@@ -365,7 +398,7 @@ async function processDownloads(itemsToDownload) {
 
 ```
 
-### public\js\main.js
+### archived-vanilla-client\public\js\main.js
 ```js
 import { fetchApiDataForSingleUrl } from './api.js';
 import { downloadAll } from './download.js';
@@ -575,7 +608,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 ```
 
-### public\js\ui.js
+### archived-vanilla-client\public\js\ui.js
 ```js
 /**
  * A collection of functions for updating the user interface.
@@ -796,7 +829,7 @@ export function showNearestLocationModal({ username, cursor, pagesLoaded }) {
 
 ```
 
-### public\js\utils.js
+### archived-vanilla-client\public\js\utils.js
 ```js
 /**
  * A collection of utility functions.
@@ -933,37 +966,40 @@ export default function App() {
 
 ### react-client\src\main.jsx
 ```jsx
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
-import Home from './pages/Home.jsx'
-import Batch from './pages/Batch.jsx'
-import Report from './pages/Report.jsx'
-import Compare from './pages/Compare.jsx'
-import Split from './pages/Split.jsx'
-import Test from './pages/Test.jsx'
-import TiktokDataViewer from './pages/TiktokDataViewer.jsx'
-import StoryViewer from './pages/StoryViewer.jsx'
-import Following from './pages/Following.jsx'
-import FollowingUrls from './pages/FollowingUrls.jsx'
+import LoadingFallback from './components/common/LoadingFallback.jsx'
+
+// Lazy load all page components for code splitting
+const Home = lazy(() => import('./pages/Home.jsx'))
+const Batch = lazy(() => import('./pages/Batch.jsx'))
+const Report = lazy(() => import('./pages/Report.jsx'))
+const Compare = lazy(() => import('./pages/Compare.jsx'))
+const Split = lazy(() => import('./pages/Split.jsx'))
+const Test = lazy(() => import('./pages/Test.jsx'))
+const TiktokDataViewer = lazy(() => import('./pages/TiktokDataViewer.jsx'))
+const StoryViewer = lazy(() => import('./pages/StoryViewer.jsx'))
+const Following = lazy(() => import('./pages/Following.jsx'))
+const FollowingUrls = lazy(() => import('./pages/FollowingUrls.jsx'))
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
     children: [
-      { index: true, element: <Home /> },
-      { path: 'batch', element: <Batch /> },
-      { path: 'report', element: <Report /> },
-      { path: 'compare', element: <Compare /> },
-      { path: 'split', element: <Split /> },
-      { path: 'test', element: <Test /> },
-      { path: 'tiktok', element: <TiktokDataViewer /> },
-      { path: 'stories', element: <StoryViewer /> },
-      { path: 'following', element: <Following /> },
-      { path: 'following-urls', element: <FollowingUrls /> },
+      { index: true, element: <Suspense fallback={<LoadingFallback />}><Home /></Suspense> },
+      { path: 'batch', element: <Suspense fallback={<LoadingFallback />}><Batch /></Suspense> },
+      { path: 'report', element: <Suspense fallback={<LoadingFallback />}><Report /></Suspense> },
+      { path: 'compare', element: <Suspense fallback={<LoadingFallback />}><Compare /></Suspense> },
+      { path: 'split', element: <Suspense fallback={<LoadingFallback />}><Split /></Suspense> },
+      { path: 'test', element: <Suspense fallback={<LoadingFallback />}><Test /></Suspense> },
+      { path: 'tiktok', element: <Suspense fallback={<LoadingFallback />}><TiktokDataViewer /></Suspense> },
+      { path: 'stories', element: <Suspense fallback={<LoadingFallback />}><StoryViewer /></Suspense> },
+      { path: 'following', element: <Suspense fallback={<LoadingFallback />}><Following /></Suspense> },
+      { path: 'following-urls', element: <Suspense fallback={<LoadingFallback />}><FollowingUrls /></Suspense> },
     ],
   },
 ])
@@ -1191,6 +1227,19 @@ export default function ImageModal({ imageUrl, onClose, onPrev, onNext }) {
     </div>
   );
 }
+```
+
+### react-client\src\components\common\LoadingFallback.jsx
+```jsx
+// Loading component for lazy-loaded routes
+export default function LoadingFallback() {
+  return (
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      <div>Loading...</div>
+    </div>
+  )
+}
+
 ```
 
 ### react-client\src\components\common\NearestLocationModal.jsx
@@ -1957,7 +2006,7 @@ export default function Following() {
     if (!followingData?.relationships_following) return []
 
     let filtered = followingData.relationships_following.filter(item => {
-      const username = item.string_list_data?.[0]?.value || ''
+      const username = item.title || ''
       return username.toLowerCase().includes(searchTerm.toLowerCase())
     })
 
@@ -1968,8 +2017,8 @@ export default function Following() {
         aValue = a.string_list_data?.[0]?.timestamp || 0
         bValue = b.string_list_data?.[0]?.timestamp || 0
       } else {
-        aValue = a.string_list_data?.[0]?.value || ''
-        bValue = b.string_list_data?.[0]?.value || ''
+        aValue = a.title  || ''
+        bValue = b.title  || ''
       }
 
       if (sortOrder === 'asc') {
@@ -2073,7 +2122,7 @@ export default function Following() {
                         rel="noopener noreferrer"
                         style={{ textDecoration: 'none', color: '#0066cc' }}
                       >
-                        @{userData.value}
+                        @{item.title}
                       </a>
                     </h4>
                     <p style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>
@@ -2143,7 +2192,8 @@ export default function FollowingUrls() {
       // Extract URLs and join with commas
       if (data?.relationships_following) {
         const extractedUrls = data.relationships_following
-          .map(item => item.string_list_data?.[0]?.href)
+          // .map(item => `https://www.instagram.com/${item.title}`)
+          .map(item => `https://www.instagram.com/${item.title}`)
           .filter(Boolean)
         setUrls(extractedUrls.join(','))
       }
@@ -2503,14 +2553,28 @@ export default function Home() {
       await refreshSavedSet()
       const itemsToDownload = allResults.filter(item => !savedSet.has(`${item.username}|${item.id}`))
       if (itemsToDownload.length === 0) { setStatus('✅ Tất cả đã lưu, không có mục mới!'); return }
+
+      // Download 5 items at a time for better performance
+      const batchSize = 5
       let completed = 0
-      for (const item of itemsToDownload) {
-        try { await downloadItems({ results: [item], apiName }) } catch {}
-        completed++
-        const percent = Math.round((completed / itemsToDownload.length) * 100)
-        setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${itemsToDownload.length}` })
-        setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
+
+      for (let i = 0; i < itemsToDownload.length; i += batchSize) {
+        const batch = itemsToDownload.slice(i, i + batchSize)
+
+        // Download batch in parallel
+        await Promise.all(batch.map(async item => {
+          try {
+            await downloadItems({ results: [item], apiName })
+            completed++
+            const percent = Math.round((completed / itemsToDownload.length) * 100)
+            setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${itemsToDownload.length}` })
+            setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
+          } catch (err) {
+            console.error('Download error:', err)
+          }
+        }))
       }
+
       setStatus(`✅ Đã tải về tất cả mục mới! ${completed} / ${itemsToDownload.length}`)
     } finally {
       setTimeout(() => setIsDownloading(false), 800)
@@ -2628,7 +2692,7 @@ dayjs.extend(isSameOrBefore)
 
 export default function Report() {
   const defaultFilters = {
-    apiName: '',
+    apiName: 'get_list_ig_user_stories',
     startDate: '',
     endDate: '',
     usernames: [],
@@ -2945,7 +3009,7 @@ const StoryViewer = () => {
             <option value={100}>100</option>
             <option value={1000}>1000</option>
             <option value={10000}>10000</option>
-            <option value={100000}>100000</option>
+            <option value={100000}>100000</option> 
           </select>
         </div>
       </div>
@@ -3120,17 +3184,17 @@ const TiktokDataViewer = () => {
         }
     }, [filteredData, selectedIndex]);
 
-    const stats = {
+    const stats = React.useMemo(() => ({
         totalVideos: activeTiktokData.length,
         totalViews: activeTiktokData.reduce((sum, video) => sum + (video.stats?.playCount || 0), 0),
         totalLikes: activeTiktokData.reduce((sum, video) => sum + (video.stats?.diggCount || 0), 0),
         totalComments: activeTiktokData.reduce((sum, video) => sum + (video.stats?.commentCount || 0), 0),
         totalShares: activeTiktokData.reduce((sum, video) => sum + (video.stats?.shareCount || 0), 0),
         totalCollections: activeTiktokData.reduce((sum, video) => sum + (video.stats?.collectCount || 0), 0)
-    };
+    }), [activeTiktokData]);
 
-    const author = activeTiktokData.length > 0 ? activeTiktokData[0].author : null;
-    const authorStats = activeTiktokData.length > 0 ? activeTiktokData[0].authorStats : null;
+    const author = React.useMemo(() => activeTiktokData.length > 0 ? activeTiktokData[0].author : null, [activeTiktokData]);
+    const authorStats = React.useMemo(() => activeTiktokData.length > 0 ? activeTiktokData[0].authorStats : null, [activeTiktokData]);
 
     useEffect(() => {
         let data = [...activeTiktokData];
@@ -3456,6 +3520,136 @@ export default TiktokDataViewer;
 
 ```
 
+### scripts\migrate-all.js
+```js
+/**
+ * Master Migration Script
+ * Runs complete migration from JSON/JSONL to SQLite with uid/uuid
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Import migration modules
+const { createDatabase } = require('../database/create-database');
+const { extractUsernameMapping } = require('../database/extract-username-mapping');
+const { bootstrapUsers } = require('../database/bootstrap-users');
+const { migrateSavedMedia } = require('../database/migrate-saved-media');
+const { migrateCursors } = require('../database/migrate-cursors');
+const { migrateReports } = require('../database/migrate-reports');
+const { verifyMigration } = require('../database/verify-migration');
+
+async function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function migrateAll() {
+    console.log('\n');
+    console.log('═'.repeat(70));
+    console.log('   🚀 SOCIAL MEDIA DATABASE MIGRATION');
+    console.log('   From JSON/JSONL → SQLite with UID/UUID');
+    console.log('═'.repeat(70));
+    console.log('\n');
+
+    const startTime = Date.now();
+
+    try {
+        // Backup old database files
+        console.log('[Step 0/7] Backing up old files...\n');
+        const dbOldFiles = ['db.js', 'schema.sql', 'migrate.js'];
+        for (const file of dbOldFiles) {
+            const oldPath = path.join(__dirname, '..', 'database', file);
+            if (fs.existsSync(oldPath)) {
+                const backupPath = path.join(__dirname, '..', 'database', `${file}.old`);
+                fs.copyFileSync(oldPath, backupPath);
+                console.log(`   ✅ Backed up: ${file} → ${file}.old`);
+            }
+        }
+        console.log();
+
+        // Step 1: Create database
+        console.log('[Step 1/7] Creating database schema...\n');
+        await createDatabase();
+        await sleep(1000);
+
+        // Step 2: Extract username mappings
+        console.log('[Step 2/7] Extracting username mappings...\n');
+        await extractUsernameMapping();
+        await sleep(1000);
+
+        // Step 3: Bootstrap users (LONG RUNNING - ~20 minutes)
+        console.log('[Step 3/7] Bootstrapping users (fetching uid/uuid)...\n');
+        console.log('⚠️  This step may take 15-30 minutes for 1000+ users');
+        console.log('   The script is resumable - you can stop and restart if needed\n');
+        await bootstrapUsers();
+        await sleep(1000);
+
+        // Step 4: Migrate saved_media
+        console.log('[Step 4/7] Migrating saved_images.json...\n');
+        await migrateSavedMedia();
+        await sleep(1000);
+
+        // Step 5: Migrate cursors
+        console.log('[Step 5/7] Migrating last_cursors.json...\n');
+        await migrateCursors();
+        await sleep(1000);
+
+        // Step 6: Migrate reports
+        console.log('[Step 6/7] Migrating ig_user_stories_report.jsonl...\n');
+        await migrateReports();
+        await sleep(1000);
+
+        // Step 7: Verify
+        console.log('[Step 7/7] Verifying migration...\n');
+        await verifyMigration();
+
+        // Summary
+        const duration = Math.round((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(duration / 60);
+        const seconds = duration % 60;
+
+        console.log('\n');
+        console.log('═'.repeat(70));
+        console.log('   ✅ MIGRATION COMPLETED SUCCESSFULLY!');
+        console.log('═'.repeat(70));
+        console.log(`   Total time: ${minutes}m ${seconds}s`);
+        console.log(`   Database: database/social_media.db`);
+        console.log(`   Mapping: database/username-mapping.json`);
+        console.log(`   Log: database/migration-log.json`);
+        console.log('═'.repeat(70));
+        console.log('\n');
+
+        console.log('📝 Next Steps:');
+        console.log('   1. Review verification results above');
+        console.log('   2. Test database queries: node database/db-v2.js');
+        console.log('   3. Update application to use new database wrapper');
+        console.log('   4. Commit changes to git\n');
+
+    } catch (err) {
+        console.error('\n');
+        console.error('═'.repeat(70));
+        console.error('   ❌ MIGRATION FAILED');
+        console.error('═'.repeat(70));
+        console.error('\nError:', err.message);
+        console.error('\nStack trace:', err.stack);
+        console.error('\n⚠️  Check migration-log.json for progress');
+        console.error('   You can resume by running this script again\n');
+        process.exit(1);
+    }
+}
+
+// Run migration
+if (require.main === module) {
+    migrateAll().catch(err => {
+        console.error('Fatal error:', err);
+        process.exit(1);
+    });
+}
+
+module.exports = { migrateAll };
+
+```
+
 ### src\app.js
 ```js
 const express = require('express');
@@ -3604,40 +3798,95 @@ module.exports = {
 ### src\controllers\cursorController.js
 ```js
 const { readLastCursors, writeLastCursors } = require('../utils/fileUtils');
+const { getDatabase } = require('../../database/db-v2');
 
 // POST /get-last-cursors { apiName, usernames }
-const getLastCursors = (req, res) => {
+const getLastCursors = async (req, res) => {
     const { apiName, usernames } = req.body;
     if (!apiName || !Array.isArray(usernames)) {
         return res.status(400).json({ error: 'Missing apiName or usernames' });
     }
-    const allCursors = readLastCursors();
-    const apiCursors = allCursors[apiName] || {};
+
     const lastCursors = {};
-    for (const username of usernames) {
-        // Return both cursor and pagesLoaded (default to '' and 0)
-        const entry = apiCursors[username] || {};
-        lastCursors[username] = {
-            cursor: entry.cursor || '',
-            pagesLoaded: entry.pagesLoaded || 0
-        };
+
+    // Try database first
+    const db = getDatabase();
+    let dbConnected = false;
+    try {
+        await db.connect();
+        dbConnected = true;
+
+        for (const username of usernames) {
+            try {
+                const cursorData = await db.getCursor(username, apiName);
+                if (cursorData) {
+                    lastCursors[username] = {
+                        cursor: cursorData.cursor || '',
+                        pagesLoaded: cursorData.pagesLoaded || 0
+                    };
+                    console.log(`📚 Retrieved cursor from database for ${username}`);
+                }
+            } catch (err) {
+                console.warn(`⚠️  Error retrieving cursor for ${username}:`, err.message);
+            }
+        }
+
+        db.close();
+    } catch (err) {
+        console.warn('⚠️  Database connection failed, falling back to file-based cursors:', err.message);
     }
+
+    // Fall back to file-based cursors for any missing
+    const allCursors = await readLastCursors();
+    const apiCursors = allCursors[apiName] || {};
+
+    for (const username of usernames) {
+        if (!lastCursors[username]) {
+            // Not found in database, check files
+            const entry = apiCursors[username] || {};
+            lastCursors[username] = {
+                cursor: entry.cursor || '',
+                pagesLoaded: entry.pagesLoaded || 0
+            };
+            console.log(`📄 Retrieved cursor from file for ${username}`);
+        }
+    }
+
     res.json({ lastCursors });
 };
 
 // POST /save-last-cursor { apiName, username, cursor, pagesLoaded }
-const saveLastCursor = (req, res) => {
+const saveLastCursor = async (req, res) => {
     const { apiName, username, cursor, pagesLoaded } = req.body;
     if (!apiName || !username || !cursor) {
         return res.status(400).json({ error: 'Missing apiName, username, or cursor' });
     }
-    const allCursors = readLastCursors();
+
+    // Save to DATABASE (new)
+    const db = getDatabase();
+    let dbConnected = false;
+    try {
+        await db.connect();
+        dbConnected = true;
+
+        await db.saveCursor(username, apiName, cursor, pagesLoaded || 0);
+        console.log(`💾 Saved cursor to database for ${username}`);
+
+        db.close();
+    } catch (err) {
+        console.warn('⚠️  Error saving to database, falling back to file-only:', err.message);
+    }
+
+    // Save to FILE (old - parallel write during transition)
+    const allCursors = await readLastCursors();
     if (!allCursors[apiName]) allCursors[apiName] = {};
     allCursors[apiName][username] = {
         cursor,
         pagesLoaded: pagesLoaded || 0
     };
-    writeLastCursors(allCursors);
+    await writeLastCursors(allCursors);
+    console.log(`📄 Saved cursor to file for ${username}`);
+
     res.json({ message: 'Last cursor and pagesLoaded saved.' });
 };
 
@@ -3656,9 +3905,99 @@ const axios = require('axios');
 const { getFileTypeFromBuffer } = require('../utils/mediaUtils');
 const { formatTimestamp } = require('../utils/formatUtils');
 const { readSavedList, writeSavedList } = require('../utils/fileUtils');
+const { retryWithBackoff, shouldRetryNetworkError } = require('../utils/retryUtils');
+const { createConcurrencyLimiter } = require('../utils/concurrencyUtils');
+const { getOrFetchUser } = require('../utils/userFetching');
+const { getDatabase } = require('../../database/db-v2');
+
+// Download concurrency limit (5 concurrent downloads)
+const downloadLimit = createConcurrencyLimiter(5);
+
+// Helper function to download a single media item
+async function downloadMediaItem(mediaItem, imageDownloadDir, videoDownloadDir, itemUsername) {
+    let currentDownloadDir = null;
+    let downloadCount = 0;
+    let errorCount = 0;
+
+    if (mediaItem.video) {
+        currentDownloadDir = videoDownloadDir;
+    } else if (mediaItem.image) {
+        currentDownloadDir = imageDownloadDir;
+    } else {
+        console.warn(`Skipping mediaItem with no image or video URL:`, mediaItem);
+        return { downloadCount: 0, errorCount: 1, savedItem: null };
+    }
+
+    // Download image with retry logic
+    if (mediaItem.image && currentDownloadDir === imageDownloadDir) {
+        const imageUrl = mediaItem.image;
+        try {
+            const response = await retryWithBackoff(
+                () => axios({ url: imageUrl, method: 'GET', responseType: 'arraybuffer', timeout: 30000 }),
+                { maxRetries: 3, shouldRetry: shouldRetryNetworkError }
+            );
+
+            if (response.status === 200 && response.data) {
+                const fileBuffer = Buffer.from(response.data);
+                const fileType = getFileTypeFromBuffer(fileBuffer);
+                let fileExtension = fileType || 'jpg';
+                if (!fileType) console.warn(`Could not determine image type for ${imageUrl}, defaulting to .jpg`);
+
+                const fileName = mediaItem.isCarouselChild ? `${mediaItem.post_id}_p${mediaItem.index}.${fileExtension}` : `${mediaItem.id}.${fileExtension}`;
+                const filePath = path.join(currentDownloadDir, fileName);
+                await fs.promises.writeFile(filePath, fileBuffer);
+                console.log(`Downloaded image: ${fileName} for ${itemUsername}`);
+                downloadCount++;
+            } else {
+                console.error(`Error downloading image ${imageUrl}: Received status code ${response.status} or no data`);
+                errorCount++;
+            }
+        } catch (e) {
+            console.error(`Error fetching or writing image ${imageUrl}:`, e.message);
+            errorCount++;
+        }
+    }
+
+    // Download video with retry logic
+    if (mediaItem.video && currentDownloadDir === videoDownloadDir) {
+        const videoUrl = mediaItem.video;
+        try {
+            const response = await retryWithBackoff(
+                () => axios({ url: videoUrl, method: 'GET', responseType: 'arraybuffer', timeout: 60000 }),
+                { maxRetries: 3, shouldRetry: shouldRetryNetworkError }
+            );
+
+            if (response.status === 200 && response.data) {
+                const fileBuffer = Buffer.from(response.data);
+                const fileType = getFileTypeFromBuffer(fileBuffer);
+                let fileExtension = fileType || 'mp4';
+                if (!fileType) console.warn(`Could not determine video type for ${videoUrl}, defaulting to .mp4`);
+
+                const fileName = mediaItem.isCarouselChild ? `${mediaItem.post_id}_p${mediaItem.index}.${fileExtension}` : `${mediaItem.id}.${fileExtension}`;
+                const filePath = path.join(currentDownloadDir, fileName);
+                await fs.promises.writeFile(filePath, fileBuffer);
+                console.log(`Downloaded video: ${fileName} for ${itemUsername}`);
+                downloadCount++;
+            } else {
+                console.error(`Error downloading video ${videoUrl}: Received status code ${response.status} or no data`);
+                errorCount++;
+            }
+        } catch (e) {
+            console.error(`Error fetching or writing video ${videoUrl}:`, e.message);
+            errorCount++;
+        }
+    }
+
+    // Return saved item info for batch writing
+    const savedItem = !mediaItem.isCarouselChild && downloadCount > 0
+        ? { username: itemUsername, id: mediaItem.post_id || mediaItem.id }
+        : null;
+
+    return { downloadCount, errorCount, savedItem };
+}
 
 const handleDownload = async (req, res) => {
-    const { results, originalUrl, apiName } = req.body;
+    const { results, originalUrl, apiName, clientId } = req.body;
 
     if (!results || !Array.isArray(results)) {
         return res.status(400).json({ error: 'Invalid data received' });
@@ -3666,24 +4005,78 @@ const handleDownload = async (req, res) => {
 
     console.log(`📥 Received download request for ${results.length} items. API: ${apiName}`);
 
-    let downloadCount = 0;
-    let errorCount = 0;
-    let successUserDirs = new Set();
+    let totalDownloadCount = 0;
+    let totalErrorCount = 0;
+    const successUserDirs = new Set();
+    const newSavedItems = [];
+
+    // Initialize database connection
+    const db = getDatabase();
+    let dbConnected = false;
+    try {
+        await db.connect();
+        dbConnected = true;
+        console.log('✅ Database connected for download tracking');
+    } catch (err) {
+        console.warn('⚠️  Database connection failed, falling back to file-only mode:', err.message);
+    }
+
+    // Read saved list once at the beginning (for parallel write during transition)
+    const savedList = await readSavedList();
+    const savedSet = new Set(savedList.map(e => `${e.username}|${e.id}`));
 
     for (const item of results) {
         if (!item.id || !item.username) {
             console.warn('Skipping item without valid ID or username:', item);
-            errorCount++;
+            totalErrorCount++;
             continue;
         }
 
         const itemUsername = item.username;
         const safeUsername = itemUsername.replace(/[^a-zA-Z0-9_-]/g, '_');
 
+        // Auto-fetch user with UID (smart caching)
+        let user = null;
+        if (dbConnected) {
+            try {
+                // Try to get/fetch user with UID
+                user = await getOrFetchUser(originalUrl || itemUsername, null, clientId);
+                if (user && user.uid) {
+                    console.log(`🔑 User ${itemUsername} → UID: ${user.uid}`);
+                } else {
+                    console.warn(`⚠️  Could not fetch UID for ${itemUsername}, continuing without UID`);
+                }
+            } catch (err) {
+                console.warn(`⚠️  Error fetching user ${itemUsername}:`, err.message);
+            }
+        }
+
+        // Check if media already saved in database (if DB is connected)
+        let isAlreadySaved = false;
+        if (dbConnected && user) {
+            try {
+                isAlreadySaved = await db.isMediaSaved(itemUsername, item.id);
+                if (isAlreadySaved) {
+                    console.log(`⏭️  Skipping ${item.id} for ${itemUsername} - already saved in database`);
+                    continue;
+                }
+            } catch (err) {
+                console.warn(`⚠️  Error checking saved status for ${item.id}:`, err.message);
+            }
+        }
+
+        // Also check file-based saved list (for backward compatibility)
+        const fileKey = `${itemUsername}|${item.id}`;
+        if (savedSet.has(fileKey)) {
+            console.log(`⏭️  Skipping ${item.id} for ${itemUsername} - already in saved files`);
+            continue;
+        }
+
         const baseDownloadDir = path.join(process.cwd(), 'result', safeUsername);
         const imageDownloadDir = path.join(baseDownloadDir, 'image');
         const videoDownloadDir = path.join(baseDownloadDir, 'video');
 
+        // Create directories if needed
         if (!successUserDirs.has(safeUsername)) {
             try {
                 await fs.promises.mkdir(imageDownloadDir, { recursive: true });
@@ -3692,11 +4085,12 @@ const handleDownload = async (req, res) => {
                 successUserDirs.add(safeUsername);
             } catch (e) {
                 console.error(`Error creating directories for user ${safeUsername}:`, e);
-                errorCount++;
+                totalErrorCount++;
                 continue;
             }
         }
 
+        // Build media items list
         let mediaItemsToDownload = [];
 
         if (item.image || item.video) {
@@ -3735,86 +4129,39 @@ const handleDownload = async (req, res) => {
             });
         }
 
-        for (const mediaItem of mediaItemsToDownload) {
-            let currentDownloadDir = null;
-            if (mediaItem.video) {
-                currentDownloadDir = videoDownloadDir;
-            } else if (mediaItem.image) {
-                currentDownloadDir = imageDownloadDir;
-            } else {
-                console.warn(`Skipping mediaItem with no image or video URL:`, mediaItem);
-                continue;
-            }
+        // Download media items in parallel (max 5 concurrent)
+        const downloadPromises = mediaItemsToDownload.map(mediaItem =>
+            downloadLimit(() => downloadMediaItem(mediaItem, imageDownloadDir, videoDownloadDir, itemUsername))
+        );
 
-            if (mediaItem.image && currentDownloadDir === imageDownloadDir) {
-                const imageUrl = mediaItem.image;
-                try {
-                    const response = await axios({ url: imageUrl, method: 'GET', responseType: 'arraybuffer' });
-                    if (response.status === 200 && response.data) {
-                        const fileBuffer = Buffer.from(response.data);
-                        const fileType = getFileTypeFromBuffer(fileBuffer);
-                        let fileExtension = fileType || 'jpg';
-                        if (!fileType) console.warn(`Could not determine image type for ${imageUrl}, defaulting to .jpg`);
+        const results = await Promise.all(downloadPromises);
 
-                        const fileName = mediaItem.isCarouselChild ? `${mediaItem.post_id}_p${mediaItem.index}.${fileExtension}` : `${mediaItem.id}.${fileExtension}`;
-                        const filePath = path.join(currentDownloadDir, fileName);
-                        await fs.promises.writeFile(filePath, fileBuffer);
-                        console.log(`Downloaded image: ${fileName} for ${itemUsername}`);
-                        downloadCount++;
+        // Aggregate results and save to database + files (parallel writes)
+        for (const result of results) {
+            totalDownloadCount += result.downloadCount;
+            totalErrorCount += result.errorCount;
+            if (result.savedItem) {
+                const key = `${result.savedItem.username}|${result.savedItem.id}`;
 
-                        if (!mediaItem.isCarouselChild) {
-                            let savedList = readSavedList();
-                            const exists = savedList.some(e => e.username === itemUsername && e.id === item.id);
-                            if (!exists) {
-                                savedList.push({ username: itemUsername, id: item.id });
-                                writeSavedList(savedList);
-                            }
-                        }
-                    } else {
-                        console.error(`Error downloading image ${imageUrl}: Received status code ${response.status} or no data`);
-                        errorCount++;
+                // Save to DATABASE (new)
+                if (dbConnected && user) {
+                    try {
+                        await db.saveMedia(itemUsername, result.savedItem.id);
+                        console.log(`💾 Saved to database: ${result.savedItem.id} for ${itemUsername}`);
+                    } catch (err) {
+                        console.warn(`⚠️  Error saving to database:`, err.message);
                     }
-                } catch (e) {
-                    console.error(`Error fetching or writing image ${imageUrl}:`, e.message);
-                    errorCount++;
                 }
-            }
 
-            if (mediaItem.video && currentDownloadDir === videoDownloadDir) {
-                const videoUrl = mediaItem.video;
-                try {
-                    const response = await axios({ url: videoUrl, method: 'GET', responseType: 'arraybuffer' });
-                    if (response.status === 200 && response.data) {
-                        const fileBuffer = Buffer.from(response.data);
-                        const fileType = getFileTypeFromBuffer(fileBuffer);
-                        let fileExtension = fileType || 'mp4';
-                        if (!fileType) console.warn(`Could not determine video type for ${videoUrl}, defaulting to .mp4`);
-
-                        const fileName = mediaItem.isCarouselChild ? `${mediaItem.post_id}_p${mediaItem.index}.${fileExtension}` : `${mediaItem.id}.${fileExtension}`;
-                        const filePath = path.join(currentDownloadDir, fileName);
-                        await fs.promises.writeFile(filePath, fileBuffer);
-                        console.log(`Downloaded video: ${fileName} for ${itemUsername}`);
-                        downloadCount++;
-
-                        if (!mediaItem.isCarouselChild) {
-                            let savedList = readSavedList();
-                            const exists = savedList.some(e => e.username === itemUsername && e.id === item.id);
-                            if (!exists) {
-                                savedList.push({ username: itemUsername, id: item.id });
-                                writeSavedList(savedList);
-                            }
-                        }
-                    } else {
-                        console.error(`Error downloading video ${videoUrl}: Received status code ${response.status} or no data`);
-                        errorCount++;
-                    }
-                } catch (e) {
-                    console.error(`Error fetching or writing video ${videoUrl}:`, e.message);
-                    errorCount++;
+                // Save to FILE (old - parallel write during transition)
+                if (!savedSet.has(key)) {
+                    newSavedItems.push(result.savedItem);
+                    savedSet.add(key);
                 }
             }
         }
 
+        // Save caption
         if (item.accessibility_caption !== undefined || item.caption !== undefined) {
             const captionText = item.accessibility_caption || item.caption || '(No caption)';
             let fullCaptionContent = `Caption text: ${captionText}\n`;
@@ -3839,20 +4186,37 @@ const handleDownload = async (req, res) => {
             try {
                 await fs.promises.writeFile(captionPath, fullCaptionContent);
                 console.log(`Saved caption: ${captionName} for ${itemUsername}`);
-                downloadCount++;
+                totalDownloadCount++;
             } catch (e) {
                 console.error(`Error saving caption ${captionName} for user ${itemUsername}:`, e);
-                errorCount++;
+                totalErrorCount++;
             }
         }
     }
 
-    console.log(`✅ Download process finished. Downloaded: ${downloadCount}, Errors: ${errorCount}`);
+    // Batch write saved items once at the end (for file-based backup)
+    if (newSavedItems.length > 0) {
+        const updatedSavedList = savedList.concat(newSavedItems);
+        await writeSavedList(updatedSavedList);
+        console.log(`✅ Batch saved ${newSavedItems.length} new items to saved files`);
+    }
 
-    if (errorCount === 0) {
-        res.status(200).json({ message: `Downloaded ${downloadCount} files.` });
+    // Close database connection
+    if (dbConnected) {
+        try {
+            db.close();
+            console.log('✅ Database connection closed');
+        } catch (err) {
+            console.warn('⚠️  Error closing database:', err.message);
+        }
+    }
+
+    console.log(`✅ Download process finished. Downloaded: ${totalDownloadCount}, Errors: ${totalErrorCount}`);
+
+    if (totalErrorCount === 0) {
+        res.status(200).json({ message: `Downloaded ${totalDownloadCount} files.` });
     } else {
-        res.status(500).json({ error: `Finished with ${errorCount} errors. Downloaded ${downloadCount} files. Check server logs for details.` });
+        res.status(500).json({ error: `Finished with ${totalErrorCount} errors. Downloaded ${totalDownloadCount} files. Check server logs for details.` });
     }
 };
 
@@ -3866,6 +4230,7 @@ module.exports = {
 ```js
 const fs = require('fs');
 const path = require('path');
+const { getDatabase } = require('../../database/db-v2');
 
 const RESULT_DIR = path.join(process.cwd(), 'data');
 
@@ -3894,9 +4259,28 @@ const saveIgUserStoriesReport = async (req, res) => {
     if (!apiName || !Array.isArray(report) || !timestamp) {
         return res.status(400).json({ error: 'Missing apiName, report, or timestamp' });
     }
+
+    // Save to DATABASE (new)
+    const db = getDatabase();
+    let dbConnected = false;
+    try {
+        await db.connect();
+        dbConnected = true;
+
+        // Save report to database
+        await db.saveReport(apiName, report, timestamp);
+        console.log(`💾 Saved report to database: ${apiName} at ${timestamp}`);
+
+        db.close();
+    } catch (err) {
+        console.warn('⚠️  Error saving to database, falling back to file-only:', err.message);
+    }
+
+    // Save to FILE (old - parallel write during transition)
     const filePath = path.join(RESULT_DIR, `ig_user_stories_report.jsonl`);
     try {
         fs.appendFileSync(filePath, JSON.stringify({ apiName, report, timestamp }) + '\n', 'utf8');
+        console.log(`📄 Saved report to file: ${apiName} at ${timestamp}`);
         res.json({ message: 'Report saved.' });
     } catch (e) {
         console.error('Error saving report:', e);
@@ -3912,10 +4296,15 @@ const deleteReportEntry = async (req, res) => {
         return res.status(400).json({ error: 'Missing required fields' });
     }
     try {
-        if (!fs.existsSync(filePath)) {
+        // Check if file exists (async)
+        try {
+            await fs.promises.access(filePath);
+        } catch {
             return res.status(404).json({ error: 'Report file not found.' });
         }
-        const lines = fs.readFileSync(filePath, 'utf8').split('\n').filter(Boolean);
+
+        const content = await fs.promises.readFile(filePath, 'utf8');
+        const lines = content.split('\n').filter(Boolean);
         let changed = false;
         const newLines = lines.map(line => {
             let obj;
@@ -3942,7 +4331,7 @@ const deleteReportEntry = async (req, res) => {
         }).filter(Boolean);
 
         if (changed) {
-            fs.writeFileSync(filePath, newLines.join('\n') + (newLines.length > 0 ? '\n' : ''), 'utf8');
+            await fs.promises.writeFile(filePath, newLines.join('\n') + (newLines.length > 0 ? '\n' : ''), 'utf8');
             return res.json({ message: 'Entry deleted.' });
         } else {
             return res.status(404).json({ error: 'Entry not found.' });
@@ -3966,6 +4355,16 @@ const fs = require('fs');
 const path = require('path');
 const { readSavedList } = require('../utils/fileUtils');
 
+// Helper function to check if file exists (async)
+async function fileExists(filePath) {
+    try {
+        await fs.promises.access(filePath);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 // Endpoint to check saved images
 const checkSaved = async (req, res) => {
     const { username, ids } = req.body;
@@ -3974,25 +4373,26 @@ const checkSaved = async (req, res) => {
     }
     // Ensure username is sanitized
     const safeUsername = username.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const imageDir = path.join(process.cwd(), 'result', safeUsername, 'image'); // Use safeUsername
+    const imageDir = path.join(process.cwd(), 'result', safeUsername, 'image');
+    const videoDir = path.join(process.cwd(), 'result', safeUsername, 'video');
+
     let savedIds = [];
     for (const id of ids) {
         // Check common extensions
-        const exts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4']; // Add mp4 if video is also considered 'saved'
+        const exts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4'];
         let found = false;
         for (const ext of exts) {
             const filePath = path.join(imageDir, `${id}.${ext}`);
             // Check in the image directory
-            if (fs.existsSync(filePath)) {
+            if (await fileExists(filePath)) {
                 savedIds.push(id);
                 found = true;
                 break;
             }
             // If not found in image, check in video (only for mp4)
             if (!found && ext === 'mp4') {
-                const videoDir = path.join(process.cwd(), 'result', safeUsername, 'video'); // Path to the video directory
                 const videoPath = path.join(videoDir, `${id}.${ext}`);
-                if (fs.existsSync(videoPath)) {
+                if (await fileExists(videoPath)) {
                     savedIds.push(id);
                     found = true;
                     break;
@@ -4004,8 +4404,9 @@ const checkSaved = async (req, res) => {
 };
 
 // Endpoint to return the list of saved images
-const getSavedList = (req, res) => {
-    res.json({ list: readSavedList() });
+const getSavedList = async (req, res) => {
+    const list = await readSavedList();
+    res.json({ list });
 };
 
 module.exports = {
@@ -4052,6 +4453,11 @@ module.exports = router;
 
 ```
 
+### src\routes\pagination.js
+```js
+ 
+```
+
 ### src\routes\report.js
 ```js
 const express = require('express');
@@ -4069,6 +4475,163 @@ router.post('/delete-report-entry', deleteReportEntry);
 module.exports = router;
 ```
 
+### src\routes\reports.js
+```js
+/**
+ * Database Query Routes - Reports
+ * Endpoints for querying report data from database
+ */
+
+const express = require('express');
+const router = express.Router();
+const { getDatabase } = require('../../database/db-v2');
+
+/**
+ * GET /api/db/reports/recent
+ * Get recent API reports
+ * Query params: ?limit=10
+ */
+router.get('/recent', async (req, res) => {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const db = getDatabase();
+    try {
+        await db.connect();
+        const reports = await db.getRecentReports(limit);
+        db.close();
+
+        res.json({ reports });
+    } catch (err) {
+        console.error('Error fetching recent reports:', err.message);
+        if (db.db) db.close();
+        res.status(500).json({ error: 'Failed to fetch reports', message: err.message });
+    }
+});
+
+/**
+ * GET /api/db/reports/date-range
+ * Get reports by date range
+ * Query params: ?startDate=2025-01-01&endDate=2025-01-31
+ */
+router.get('/date-range', async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+        return res.status(400).json({ error: 'Missing startDate or endDate query parameters' });
+    }
+
+    const db = getDatabase();
+    try {
+        await db.connect();
+        const reports = await db.getReportsByDateRange(startDate, endDate);
+        db.close();
+
+        res.json({ reports, count: reports.length });
+    } catch (err) {
+        console.error('Error fetching reports by date range:', err.message);
+        if (db.db) db.close();
+        res.status(500).json({ error: 'Failed to fetch reports', message: err.message });
+    }
+});
+
+/**
+ * GET /api/db/reports/stats
+ * Get API performance statistics
+ */
+router.get('/stats', async (req, res) => {
+    const db = getDatabase();
+    try {
+        await db.connect();
+        const stats = await db.getApiPerformance();
+        db.close();
+
+        res.json({ stats });
+    } catch (err) {
+        console.error('Error fetching API stats:', err.message);
+        if (db.db) db.close();
+        res.status(500).json({ error: 'Failed to fetch stats', message: err.message });
+    }
+});
+
+/**
+ * POST /api/db/reports/query
+ * Custom report query with filters
+ * Body: { apiName, username, startDate, endDate, limit }
+ */
+router.post('/query', async (req, res) => {
+    const { apiName, username, startDate, endDate, limit } = req.body;
+
+    const db = getDatabase();
+    try {
+        await db.connect();
+
+        // Build dynamic query based on filters
+        let query = `
+            SELECT
+                ar.id,
+                ar.timestamp,
+                at.name as api_name,
+                rd.user_id,
+                uh.username,
+                rd.url,
+                rd.total_items,
+                rd.items_saved,
+                rd.items_not_saved,
+                rd.duration,
+                rd.pages_fetched,
+                rd.media_ids
+            FROM api_reports ar
+            JOIN api_types at ON ar.api_type_id = at.id
+            JOIN report_details rd ON ar.id = rd.report_id
+            JOIN users u ON rd.user_id = u.id
+            LEFT JOIN username_history uh ON u.id = uh.user_id AND uh.is_current = 1
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (apiName) {
+            query += ` AND at.name = ?`;
+            params.push(apiName);
+        }
+
+        if (username) {
+            query += ` AND uh.username = ?`;
+            params.push(username);
+        }
+
+        if (startDate && endDate) {
+            query += ` AND ar.timestamp BETWEEN ? AND ?`;
+            params.push(startDate, endDate);
+        }
+
+        query += ` ORDER BY ar.timestamp DESC`;
+
+        if (limit) {
+            query += ` LIMIT ?`;
+            params.push(parseInt(limit));
+        }
+
+        const reports = await new Promise((resolve, reject) => {
+            db.db.all(query, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+
+        db.close();
+
+        res.json({ reports, count: reports.length });
+    } catch (err) {
+        console.error('Error executing custom report query:', err.message);
+        if (db.db) db.close();
+        res.status(500).json({ error: 'Failed to execute query', message: err.message });
+    }
+});
+
+module.exports = router;
+
+```
+
 ### src\routes\saved.js
 ```js
 const express = require('express');
@@ -4082,6 +4645,43 @@ module.exports = router;
 
 ```
 
+### src\utils\concurrencyUtils.js
+```js
+/**
+ * Simple concurrency limiter for parallel execution
+ * @param {number} limit - Maximum number of concurrent operations
+ * @returns {Function} - Function that wraps async operations
+ */
+function createConcurrencyLimiter(limit) {
+    let activeCount = 0;
+    const queue = [];
+
+    async function run(fn) {
+        // Wait if we're at the limit
+        while (activeCount >= limit) {
+            await new Promise(resolve => queue.push(resolve));
+        }
+
+        activeCount++;
+        try {
+            return await fn();
+        } finally {
+            activeCount--;
+            // Release the next queued operation
+            const next = queue.shift();
+            if (next) next();
+        }
+    }
+
+    return run;
+}
+
+module.exports = {
+    createConcurrencyLimiter,
+};
+
+```
+
 ### src\utils\fileUtils.js
 ```js
 const fs = require('fs');
@@ -4090,48 +4690,52 @@ const path = require('path');
 const SAVED_IMAGES_PATH = path.join(process.cwd(), '/data/', 'saved_images.json');
 const LAST_CURSORS_PATH = path.join(process.cwd(), '/data/', 'last_cursors.json');
 
-// Helper: Read the JSON file that stores the list of saved images
-function readSavedList() {
+// Helper: Read the JSON file that stores the list of saved images (async)
+async function readSavedList() {
     try {
         // Ensure the 'result' directory exists before reading/writing the file
-        fs.mkdirSync(path.dirname(SAVED_IMAGES_PATH), { recursive: true });
-        if (!fs.existsSync(SAVED_IMAGES_PATH)) {
+        await fs.promises.mkdir(path.dirname(SAVED_IMAGES_PATH), { recursive: true });
+        const exists = await fs.promises.access(SAVED_IMAGES_PATH).then(() => true).catch(() => false);
+        if (!exists) {
             return [];
         }
-        return JSON.parse(fs.readFileSync(SAVED_IMAGES_PATH, 'utf8'));
+        const data = await fs.promises.readFile(SAVED_IMAGES_PATH, 'utf8');
+        return JSON.parse(data);
     } catch (e) {
         console.error("Error reading or parsing saved_images.json:", e);
         return [];
     }
 }
 
-// Helper: Write to the JSON file that stores the list of saved images
-function writeSavedList(list) {
+// Helper: Write to the JSON file that stores the list of saved images (async)
+async function writeSavedList(list) {
     try {
         // Ensure the 'result' directory exists before writing the file
-        fs.mkdirSync(path.dirname(SAVED_IMAGES_PATH), { recursive: true });
-        fs.writeFileSync(SAVED_IMAGES_PATH, JSON.stringify(list, null, 2), 'utf8');
+        await fs.promises.mkdir(path.dirname(SAVED_IMAGES_PATH), { recursive: true });
+        await fs.promises.writeFile(SAVED_IMAGES_PATH, JSON.stringify(list, null, 2), 'utf8');
     } catch (e) {
         console.error("Error writing saved_images.json:", e);
     }
 }
 
-// --- LAST CURSOR STORAGE ---
-function readLastCursors() {
+// --- LAST CURSOR STORAGE (async) ---
+async function readLastCursors() {
     try {
-        fs.mkdirSync(path.dirname(LAST_CURSORS_PATH), { recursive: true });
-        if (!fs.existsSync(LAST_CURSORS_PATH)) return {};
-        return JSON.parse(fs.readFileSync(LAST_CURSORS_PATH, 'utf8'));
+        await fs.promises.mkdir(path.dirname(LAST_CURSORS_PATH), { recursive: true });
+        const exists = await fs.promises.access(LAST_CURSORS_PATH).then(() => true).catch(() => false);
+        if (!exists) return {};
+        const data = await fs.promises.readFile(LAST_CURSORS_PATH, 'utf8');
+        return JSON.parse(data);
     } catch (e) {
         console.error('Error reading last_cursors.json:', e);
         return {};
     }
 }
 
-function writeLastCursors(obj) {
+async function writeLastCursors(obj) {
     try {
-        fs.mkdirSync(path.dirname(LAST_CURSORS_PATH), { recursive: true });
-        fs.writeFileSync(LAST_CURSORS_PATH, JSON.stringify(obj, null, 2), 'utf8');
+        await fs.promises.mkdir(path.dirname(LAST_CURSORS_PATH), { recursive: true });
+        await fs.promises.writeFile(LAST_CURSORS_PATH, JSON.stringify(obj, null, 2), 'utf8');
     } catch (e) {
         console.error('Error writing last_cursors.json:', e);
     }
@@ -4223,6 +4827,557 @@ function getFileTypeFromBuffer(buffer) {
 
 module.exports = {
     getFileTypeFromBuffer,
+};
+
+```
+
+### src\utils\platformIdUtils.js
+```js
+/**
+ * Platform ID Utilities
+ * Fetch Facebook UID and Instagram UUID from API endpoints
+ */
+
+const axios = require('axios');
+const { retryWithBackoff, shouldRetryNetworkError } = require('./retryUtils');
+
+// Default client ID (can be overridden)
+const DEFAULT_CLIENT_ID = process.env.CLIENT_ID || 'client_default';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+
+/**
+ * Detect platform from URL
+ * @param {string} url - Profile URL
+ * @returns {string|null} - 'facebook', 'instagram', or null
+ */
+function detectPlatform(url) {
+    if (!url) return null;
+    if (url.includes('facebook.com')) return 'facebook';
+    if (url.includes('instagram.com')) return 'instagram';
+    return null;
+}
+
+/**
+ * Detect platform from API name
+ * @param {string} apiName - API endpoint name
+ * @returns {string|null} - 'facebook', 'instagram', or null
+ */
+function detectPlatformFromApiName(apiName) {
+    if (!apiName) return null;
+    if (apiName.startsWith('get_list_fb_') || apiName.startsWith('get_fb_')) return 'facebook';
+    if (apiName.startsWith('get_list_ig_') || apiName.startsWith('get_ig_')) return 'instagram';
+    return null;
+}
+
+/**
+ * Extract username from URL
+ * @param {string} url - Profile URL
+ * @returns {string|null} - Username or null
+ */
+function extractUsernameFromUrl(url) {
+    if (!url) return null;
+
+    try {
+        const urlObj = new URL(url);
+
+        // Facebook patterns
+        if (urlObj.hostname.includes('facebook.com')) {
+            const pathParts = urlObj.pathname.split('/').filter(Boolean);
+            if (pathParts.length > 0) {
+                // Handle profile.php?id=xxx
+                if (pathParts[0] === 'profile.php' && urlObj.searchParams.has('id')) {
+                    return urlObj.searchParams.get('id');
+                }
+                // Skip photo.php, story.php, etc.
+                if (!['photo.php', 'story.php', 'watch'].includes(pathParts[0])) {
+                    return pathParts[0];
+                }
+            }
+        }
+
+        // Instagram patterns
+        if (urlObj.hostname.includes('instagram.com')) {
+            let path = urlObj.pathname.split('/').filter(Boolean)[0];
+            if (path && path.endsWith('/')) path = path.slice(0, -1);
+            if (path && !['p', 'reel', 'stories', 'tv'].includes(path)) {
+                return path;
+            }
+        }
+    } catch (err) {
+        console.error('Error parsing URL:', err.message);
+    }
+
+    return null;
+}
+
+/**
+ * Fetch Facebook UID from API
+ * @param {string} url - Facebook profile URL
+ * @param {string} clientId - WebSocket client ID
+ * @returns {Promise<{uid: string, name: string, avatar: string}|null>}
+ */
+async function fetchFacebookUid(url, clientId = DEFAULT_CLIENT_ID) {
+    try {
+        const response = await retryWithBackoff(
+            () => axios.post(`${API_BASE_URL}/call`, {
+                id: clientId,
+                apiname: 'get_fb_entity_info',
+                apiparams: { url, raw: '' }
+            }, { timeout: 30000 }),
+            { maxRetries: 3, shouldRetry: shouldRetryNetworkError }
+        );
+
+        const data = response.data;
+
+        // Check if it's a successful response with result
+        if (data.result && data.result.uid) {
+            return {
+                uid: data.result.uid,
+                name: data.result.name,
+                avatar: data.result.avatar || data.result.avatarBig
+            };
+        }
+
+        console.warn(`No UID found in response for ${url}`);
+        return null;
+    } catch (err) {
+        console.error(`Error fetching Facebook UID for ${url}:`, err.message);
+        return null;
+    }
+}
+
+/**
+ * Fetch Instagram UUID from API
+ * @param {string} url - Instagram profile URL
+ * @param {string} clientId - WebSocket client ID
+ * @returns {Promise<{uid: string, name: string, avatar: string, username: string}|null>}
+ */
+async function fetchInstagramUuid(url, clientId = DEFAULT_CLIENT_ID) {
+    try {
+        const response = await retryWithBackoff(
+            () => axios.post(`${API_BASE_URL}/call`, {
+                id: clientId,
+                apiname: 'get_ig_user_info',
+                apiparams: { url, raw: false }
+            }, { timeout: 30000 }),
+            { maxRetries: 3, shouldRetry: shouldRetryNetworkError }
+        );
+
+        const data = response.data;
+
+        // Check if it's a successful response with result
+        if (data.result && data.result.uid) {
+            return {
+                uid: data.result.uid,
+                name: data.result.name,
+                avatar: data.result.avatar || data.result.avatarBig,
+                username: data.result.username
+            };
+        }
+
+        console.warn(`No UUID found in response for ${url}`);
+        return null;
+    } catch (err) {
+        console.error(`Error fetching Instagram UUID for ${url}:`, err.message);
+        return null;
+    }
+}
+
+/**
+ * Fetch platform ID (UID or UUID) based on platform
+ * @param {string} platform - 'facebook' or 'instagram'
+ * @param {string} url - Profile URL
+ * @param {string} clientId - WebSocket client ID
+ * @returns {Promise<{uid: string, name: string, avatar: string, username?: string}|null>}
+ */
+async function fetchPlatformId(platform, url, clientId = DEFAULT_CLIENT_ID) {
+    if (platform === 'facebook') {
+        return await fetchFacebookUid(url, clientId);
+    } else if (platform === 'instagram') {
+        return await fetchInstagramUuid(url, clientId);
+    } else {
+        console.error(`Unknown platform: ${platform}`);
+        return null;
+    }
+}
+
+/**
+ * Auto-detect platform and fetch ID
+ * @param {string} url - Profile URL
+ * @param {string} clientId - WebSocket client ID
+ * @returns {Promise<{platform: string, uid: string, name: string, avatar: string, username?: string}|null>}
+ */
+async function autoFetchPlatformId(url, clientId = DEFAULT_CLIENT_ID) {
+    const platform = detectPlatform(url);
+    if (!platform) {
+        console.error(`Could not detect platform from URL: ${url}`);
+        return null;
+    }
+
+    const result = await fetchPlatformId(platform, url, clientId);
+    if (result) {
+        return { platform, ...result };
+    }
+
+    return null;
+}
+
+module.exports = {
+    detectPlatform,
+    detectPlatformFromApiName,
+    extractUsernameFromUrl,
+    fetchFacebookUid,
+    fetchInstagramUuid,
+    fetchPlatformId,
+    autoFetchPlatformId
+};
+
+```
+
+### src\utils\retryUtils.js
+```js
+/**
+ * Retry a function with exponential backoff
+ * @param {Function} fn - The async function to retry
+ * @param {Object} options - Retry options
+ * @param {number} options.maxRetries - Maximum number of retries (default: 3)
+ * @param {number} options.initialDelay - Initial delay in ms (default: 1000)
+ * @param {number} options.maxDelay - Maximum delay in ms (default: 10000)
+ * @param {Function} options.shouldRetry - Function to determine if error should be retried
+ * @returns {Promise} - The result of the function
+ */
+async function retryWithBackoff(fn, options = {}) {
+    const {
+        maxRetries = 3,
+        initialDelay = 1000,
+        maxDelay = 10000,
+        shouldRetry = () => true
+    } = options;
+
+    let lastError;
+    let delay = initialDelay;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+
+            // Don't retry if we've exhausted attempts
+            if (attempt === maxRetries) {
+                break;
+            }
+
+            // Don't retry if the error shouldn't be retried
+            if (!shouldRetry(error)) {
+                break;
+            }
+
+            // Log retry attempt
+            console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms. Error:`, error.message);
+
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            // Exponential backoff with jitter
+            delay = Math.min(delay * 2, maxDelay);
+            delay = delay + Math.random() * 1000; // Add jitter
+        }
+    }
+
+    throw lastError;
+}
+
+/**
+ * Determine if an error should be retried based on status code
+ * @param {Error} error - The error object
+ * @returns {boolean} - Whether to retry
+ */
+function shouldRetryNetworkError(error) {
+    // Retry on network errors
+    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+        return true;
+    }
+
+    // Retry on 5xx server errors and 429 (too many requests)
+    if (error.response) {
+        const status = error.response.status;
+        return status >= 500 || status === 429;
+    }
+
+    // Don't retry on 4xx client errors (except 429)
+    return false;
+}
+
+module.exports = {
+    retryWithBackoff,
+    shouldRetryNetworkError,
+};
+
+```
+
+### src\utils\userFetching.js
+```js
+/**
+ * User Fetching Utilities
+ * Smart auto-fetch UID from API if not in database
+ * Implements caching strategy for user data
+ */
+
+const { getDatabase } = require('../../database/db-v2');
+const {
+    detectPlatform,
+    extractUsernameFromUrl,
+    fetchPlatformId,
+    autoFetchPlatformId
+} = require('./platformIdUtils');
+
+/**
+ * Build profile URL from username and platform
+ * @param {string} username - Username
+ * @param {string} platform - 'facebook' or 'instagram'
+ * @returns {string} - Profile URL
+ */
+function buildProfileUrl(username, platform) {
+    if (platform === 'facebook') {
+        return `https://www.facebook.com/${username}`;
+    } else if (platform === 'instagram') {
+        return `https://www.instagram.com/${username}/`;
+    } else {
+        throw new Error(`Unknown platform: ${platform}`);
+    }
+}
+
+/**
+ * Get or fetch user with UID from database or API
+ * This is the main function that implements smart caching:
+ * 1. Check database first (fast path)
+ * 2. If not found or no UID, fetch from API (slow path, one-time cost)
+ * 3. Save to database for future use
+ *
+ * @param {string} urlOrUsername - Profile URL or username
+ * @param {string|null} platform - 'facebook', 'instagram', or null (auto-detect)
+ * @param {string} clientId - WebSocket client ID for API calls
+ * @returns {Promise<{id: number, uid: string, username: string, platform_name: string, profile_url: string}|null>}
+ */
+async function getOrFetchUser(urlOrUsername, platform = null, clientId = null) {
+    const db = getDatabase();
+    let dbWasConnected = db.db !== null;
+
+    try {
+        if (!dbWasConnected) {
+            await db.connect();
+        }
+
+        let url, username;
+
+        // Determine if input is URL or username
+        if (urlOrUsername.startsWith('http://') || urlOrUsername.startsWith('https://')) {
+            url = urlOrUsername;
+            username = extractUsernameFromUrl(url);
+
+            // Auto-detect platform if not provided
+            if (!platform) {
+                platform = detectPlatform(url);
+            }
+        } else {
+            username = urlOrUsername;
+
+            // Must have platform if providing username
+            if (!platform) {
+                throw new Error('Platform must be specified when providing username instead of URL');
+            }
+
+            url = buildProfileUrl(username, platform);
+        }
+
+        if (!username) {
+            console.warn(`⚠️ Could not extract username from: ${urlOrUsername}`);
+            return null;
+        }
+
+        if (!platform) {
+            console.warn(`⚠️ Could not detect platform from: ${urlOrUsername}`);
+            return null;
+        }
+
+        // Step 1: Check database by username first
+        let user = await db.getUserByUsername(username);
+
+        // Step 2: If user exists and has UID, return immediately (fast path)
+        if (user && user.uid) {
+            console.log(`✅ Found user in database: ${username} → ${user.uid} (${platform})`);
+            return user;
+        }
+
+        // Step 3: User not found or missing UID - fetch from API (slow path)
+        console.log(`🔄 Fetching UID for user: ${username} (${platform})`);
+
+        if (!clientId) {
+            console.warn(`⚠️ No client ID provided for API call, using default`);
+        }
+
+        const userInfo = await fetchPlatformId(platform, url, clientId);
+
+        if (!userInfo || !userInfo.uid) {
+            console.warn(`⚠️ Could not fetch UID for ${username} from ${platform} API`);
+
+            // Still create user record without UID if they don't exist
+            if (!user) {
+                user = await db.getOrCreateUser({
+                    platform,
+                    uid: null,
+                    username: username,
+                    profile_url: url
+                });
+                console.log(`⚠️ Created user record without UID: ${username}`);
+            }
+
+            return user;
+        }
+
+        // Step 4: Save or update user in database
+        if (user && !user.uid) {
+            // User exists but missing UID - update it
+            console.log(`🔄 Updating UID for existing user: ${username} → ${userInfo.uid}`);
+            const platformId = platform === 'facebook' ? 1 : 2;
+            await db.db.run(
+                'UPDATE users SET uid = ? WHERE id = ?',
+                [userInfo.uid, user.id]
+            );
+
+            // Update username if API returned a different one
+            if (userInfo.username && userInfo.username !== username) {
+                await db.updateUsername(user.id, userInfo.username, url);
+                console.log(`🔄 Updated username: ${username} → ${userInfo.username}`);
+            }
+
+            // Fetch updated user
+            user = await db.getUserByUid(platform, userInfo.uid);
+        } else {
+            // Create new user with UID
+            user = await db.getOrCreateUser({
+                platform,
+                uid: userInfo.uid,
+                username: userInfo.username || username,
+                profile_url: url
+            });
+            console.log(`✅ New user saved: ${userInfo.username || username} → ${userInfo.uid} (${platform})`);
+        }
+
+        return user;
+
+    } catch (err) {
+        console.error(`❌ Error in getOrFetchUser for ${urlOrUsername}:`, err.message);
+        throw err;
+    } finally {
+        // Only close if we opened the connection
+        if (!dbWasConnected && db.db) {
+            db.close();
+        }
+    }
+}
+
+/**
+ * Bulk fetch users from URLs
+ * Processes multiple URLs in parallel
+ *
+ * @param {string[]} urls - Array of profile URLs
+ * @param {string} clientId - WebSocket client ID for API calls
+ * @param {number} concurrency - Max concurrent API calls (default: 3)
+ * @returns {Promise<Array<{url: string, user: object|null, error: string|null}>>}
+ */
+async function bulkFetchUsers(urls, clientId, concurrency = 3) {
+    const results = [];
+    const queue = [...urls];
+    const inProgress = new Set();
+
+    return new Promise((resolve) => {
+        const processNext = async () => {
+            if (queue.length === 0 && inProgress.size === 0) {
+                resolve(results);
+                return;
+            }
+
+            while (queue.length > 0 && inProgress.size < concurrency) {
+                const url = queue.shift();
+                const promise = (async () => {
+                    try {
+                        const user = await getOrFetchUser(url, null, clientId);
+                        results.push({ url, user, error: null });
+                    } catch (err) {
+                        console.error(`Error fetching user for ${url}:`, err.message);
+                        results.push({ url, user: null, error: err.message });
+                    } finally {
+                        inProgress.delete(promise);
+                        processNext();
+                    }
+                })();
+
+                inProgress.add(promise);
+            }
+        };
+
+        processNext();
+    });
+}
+
+/**
+ * Check if user exists in database with UID
+ * @param {string} username - Username to check
+ * @returns {Promise<boolean>}
+ */
+async function userHasUid(username) {
+    const db = getDatabase();
+    let dbWasConnected = db.db !== null;
+
+    try {
+        if (!dbWasConnected) {
+            await db.connect();
+        }
+
+        const user = await db.getUserByUsername(username);
+        return user && user.uid ? true : false;
+
+    } finally {
+        if (!dbWasConnected && db.db) {
+            db.close();
+        }
+    }
+}
+
+/**
+ * Get user by UID (skip username lookup)
+ * Faster when you already have the UID
+ *
+ * @param {string} platform - 'facebook' or 'instagram'
+ * @param {string} uid - Facebook UID or Instagram UUID
+ * @returns {Promise<object|null>}
+ */
+async function getUserByUid(platform, uid) {
+    const db = getDatabase();
+    let dbWasConnected = db.db !== null;
+
+    try {
+        if (!dbWasConnected) {
+            await db.connect();
+        }
+
+        return await db.getUserByUid(platform, uid);
+
+    } finally {
+        if (!dbWasConnected && db.db) {
+            db.close();
+        }
+    }
+}
+
+module.exports = {
+    buildProfileUrl,
+    getOrFetchUser,
+    bulkFetchUsers,
+    userHasUid,
+    getUserByUid
 };
 
 ```
@@ -4341,5 +5496,493 @@ module.exports = {
     pendingRequests,
     generateRequestId,
 };
+
+```
+
+### tests\setup.js
+```js
+/**
+ * Test Setup
+ * Global configuration for all tests
+ */
+
+// Set test environment variables
+process.env.NODE_ENV = 'test';
+process.env.CLIENT_ID = 'test_client_123';
+process.env.API_BASE_URL = 'http://localhost:3000';
+
+// Mock console methods to reduce noise in test output
+global.console = {
+    ...console,
+    log: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+};
+
+// Global test timeout
+jest.setTimeout(30000);
+
+```
+
+### tests\unit\utils\userFetching.test.js
+```js
+/**
+ * Unit Tests for User Fetching Utilities
+ * Tests smart auto-fetch UID caching strategy
+ */
+
+const {
+    buildProfileUrl,
+    getOrFetchUser,
+    bulkFetchUsers,
+    userHasUid,
+    getUserByUid
+} = require('../../../src/utils/userFetching');
+
+// Mock dependencies
+jest.mock('../../../database/db-v2');
+jest.mock('../../../src/utils/platformIdUtils');
+
+const { getDatabase } = require('../../../database/db-v2');
+const {
+    detectPlatform,
+    extractUsernameFromUrl,
+    fetchPlatformId
+} = require('../../../src/utils/platformIdUtils');
+
+describe('userFetching', () => {
+    let mockDb;
+
+    beforeEach(() => {
+        // Reset mocks
+        jest.clearAllMocks();
+
+        // Setup mock database
+        mockDb = {
+            db: {},
+            connect: jest.fn().mockImplementation(async function() {
+                this.db = { mockConnection: true };
+            }),
+            close: jest.fn().mockImplementation(function() {
+                this.db = null;
+            }),
+            getUserByUsername: jest.fn(),
+            getUserByUid: jest.fn(),
+            getOrCreateUser: jest.fn(),
+            updateUsername: jest.fn()
+        };
+
+        getDatabase.mockReturnValue(mockDb);
+
+        // Setup default mock implementations
+        detectPlatform.mockImplementation((url) => {
+            if (url.includes('facebook.com')) return 'facebook';
+            if (url.includes('instagram.com')) return 'instagram';
+            return null;
+        });
+
+        extractUsernameFromUrl.mockImplementation((url) => {
+            if (url.includes('facebook.com')) {
+                const match = url.match(/facebook\.com\/([^/?]+)/);
+                return match ? match[1] : null;
+            }
+            if (url.includes('instagram.com')) {
+                const match = url.match(/instagram\.com\/([^/?]+)/);
+                return match ? match[1] : null;
+            }
+            return null;
+        });
+    });
+
+    describe('buildProfileUrl', () => {
+        it('should build Facebook profile URL', () => {
+            const url = buildProfileUrl('testuser', 'facebook');
+            expect(url).toBe('https://www.facebook.com/testuser');
+        });
+
+        it('should build Instagram profile URL', () => {
+            const url = buildProfileUrl('testuser', 'instagram');
+            expect(url).toBe('https://www.instagram.com/testuser/');
+        });
+
+        it('should throw error for unknown platform', () => {
+            expect(() => buildProfileUrl('testuser', 'twitter'))
+                .toThrow('Unknown platform: twitter');
+        });
+    });
+
+    describe('getOrFetchUser', () => {
+        it('should return user from database if exists with UID (fast path)', async () => {
+            mockDb.db = null; // Ensure connection is required
+
+            const mockUser = {
+                id: 1,
+                uid: '123456789',
+                username: 'testuser',
+                platform_name: 'instagram'
+            };
+
+            mockDb.getUserByUsername.mockResolvedValue(mockUser);
+
+            const result = await getOrFetchUser('https://www.instagram.com/testuser/', null, 'client_123');
+
+            expect(result).toEqual(mockUser);
+            expect(mockDb.getUserByUsername).toHaveBeenCalledWith('testuser');
+            expect(fetchPlatformId).not.toHaveBeenCalled();
+            expect(mockDb.connect).toHaveBeenCalled();
+            expect(mockDb.close).toHaveBeenCalled();
+        });
+
+        it('should fetch from API if user not in database (slow path)', async () => {
+            mockDb.getUserByUsername.mockResolvedValue(null);
+
+            const mockApiResponse = {
+                uid: '987654321',
+                username: 'testuser',
+                name: 'Test User',
+                avatar: 'https://example.com/avatar.jpg'
+            };
+
+            fetchPlatformId.mockResolvedValue(mockApiResponse);
+
+            const mockCreatedUser = {
+                id: 2,
+                uid: '987654321',
+                username: 'testuser',
+                platform_name: 'instagram'
+            };
+
+            mockDb.getOrCreateUser.mockResolvedValue(mockCreatedUser);
+
+            const result = await getOrFetchUser('https://www.instagram.com/testuser/', null, 'client_123');
+
+            expect(result).toEqual(mockCreatedUser);
+            expect(mockDb.getUserByUsername).toHaveBeenCalledWith('testuser');
+            expect(fetchPlatformId).toHaveBeenCalledWith('instagram', 'https://www.instagram.com/testuser/', 'client_123');
+            expect(mockDb.getOrCreateUser).toHaveBeenCalledWith({
+                platform: 'instagram',
+                uid: '987654321',
+                username: 'testuser',
+                profile_url: 'https://www.instagram.com/testuser/'
+            });
+        });
+
+        it('should update existing user if found without UID', async () => {
+            const mockExistingUser = {
+                id: 3,
+                uid: null,
+                username: 'testuser',
+                platform_name: 'facebook'
+            };
+
+            mockDb.getUserByUsername.mockResolvedValue(mockExistingUser);
+
+            const mockApiResponse = {
+                uid: '111222333',
+                username: 'testuser',
+                name: 'Test User'
+            };
+
+            fetchPlatformId.mockResolvedValue(mockApiResponse);
+
+            const mockUpdatedUser = {
+                id: 3,
+                uid: '111222333',
+                username: 'testuser',
+                platform_name: 'facebook'
+            };
+
+            mockDb.getUserByUid.mockResolvedValue(mockUpdatedUser);
+
+            mockDb.db.run = jest.fn((sql, params, callback) => {
+                if (callback) callback.call({ lastID: 3 });
+            });
+
+            const result = await getOrFetchUser('https://www.facebook.com/testuser', null, 'client_123');
+
+            expect(result).toEqual(mockUpdatedUser);
+            expect(fetchPlatformId).toHaveBeenCalledWith('facebook', 'https://www.facebook.com/testuser', 'client_123');
+        });
+
+        it('should handle username input with platform specified', async () => {
+            const mockUser = {
+                id: 4,
+                uid: '555666777',
+                username: 'testuser',
+                platform_name: 'instagram'
+            };
+
+            mockDb.getUserByUsername.mockResolvedValue(mockUser);
+
+            const result = await getOrFetchUser('testuser', 'instagram', 'client_123');
+
+            expect(result).toEqual(mockUser);
+            expect(mockDb.getUserByUsername).toHaveBeenCalledWith('testuser');
+        });
+
+        it('should throw error if username provided without platform', async () => {
+            await expect(getOrFetchUser('testuser', null, 'client_123'))
+                .rejects
+                .toThrow('Platform must be specified when providing username instead of URL');
+        });
+
+        it('should return null if username cannot be extracted', async () => {
+            extractUsernameFromUrl.mockReturnValue(null);
+
+            const result = await getOrFetchUser('https://invalid-url.com', null, 'client_123');
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null if platform cannot be detected', async () => {
+            detectPlatform.mockReturnValue(null);
+
+            const result = await getOrFetchUser('https://twitter.com/testuser', null, 'client_123');
+
+            expect(result).toBeNull();
+        });
+
+        it('should create user without UID if API fetch fails', async () => {
+            mockDb.getUserByUsername.mockResolvedValue(null);
+            fetchPlatformId.mockResolvedValue(null);
+
+            const mockCreatedUser = {
+                id: 5,
+                uid: null,
+                username: 'testuser',
+                platform_name: 'instagram'
+            };
+
+            mockDb.getOrCreateUser.mockResolvedValue(mockCreatedUser);
+
+            const result = await getOrFetchUser('https://www.instagram.com/testuser/', null, 'client_123');
+
+            expect(result).toEqual(mockCreatedUser);
+            expect(mockDb.getOrCreateUser).toHaveBeenCalledWith({
+                platform: 'instagram',
+                uid: null,
+                username: 'testuser',
+                profile_url: 'https://www.instagram.com/testuser/'
+            });
+        });
+
+        it('should update username if API returns different username', async () => {
+            const mockExistingUser = {
+                id: 6,
+                uid: null,
+                username: 'oldusername',
+                platform_name: 'instagram'
+            };
+
+            mockDb.getUserByUsername.mockResolvedValue(mockExistingUser);
+
+            const mockApiResponse = {
+                uid: '999888777',
+                username: 'newusername',
+                name: 'Test User'
+            };
+
+            fetchPlatformId.mockResolvedValue(mockApiResponse);
+
+            const mockUpdatedUser = {
+                id: 6,
+                uid: '999888777',
+                username: 'newusername',
+                platform_name: 'instagram'
+            };
+
+            mockDb.getUserByUid.mockResolvedValue(mockUpdatedUser);
+            mockDb.db.run = jest.fn((sql, params, callback) => {
+                if (callback) callback.call({ lastID: 6 });
+            });
+
+            await getOrFetchUser('https://www.instagram.com/oldusername/', null, 'client_123');
+
+            expect(mockDb.updateUsername).toHaveBeenCalledWith(6, 'newusername', 'https://www.instagram.com/oldusername/');
+        });
+
+        it('should not close database if already connected', async () => {
+            mockDb.db = { some: 'connection' };
+
+            const mockUser = {
+                id: 1,
+                uid: '123456789',
+                username: 'testuser',
+                platform_name: 'instagram'
+            };
+
+            mockDb.getUserByUsername.mockResolvedValue(mockUser);
+
+            await getOrFetchUser('https://www.instagram.com/testuser/', null, 'client_123');
+
+            expect(mockDb.connect).not.toHaveBeenCalled();
+            expect(mockDb.close).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('bulkFetchUsers', () => {
+        it('should fetch multiple users in parallel', async () => {
+            const urls = [
+                'https://www.instagram.com/user1/',
+                'https://www.facebook.com/user2',
+                'https://www.instagram.com/user3/'
+            ];
+
+            const mockUsers = [
+                { id: 1, uid: '111', username: 'user1', platform_name: 'instagram' },
+                { id: 2, uid: '222', username: 'user2', platform_name: 'facebook' },
+                { id: 3, uid: '333', username: 'user3', platform_name: 'instagram' }
+            ];
+
+            mockDb.getUserByUsername
+                .mockResolvedValueOnce(mockUsers[0])
+                .mockResolvedValueOnce(mockUsers[1])
+                .mockResolvedValueOnce(mockUsers[2]);
+
+            const results = await bulkFetchUsers(urls, 'client_123', 3);
+
+            expect(results).toHaveLength(3);
+            expect(results[0]).toEqual({ url: urls[0], user: mockUsers[0], error: null });
+            expect(results[1]).toEqual({ url: urls[1], user: mockUsers[1], error: null });
+            expect(results[2]).toEqual({ url: urls[2], user: mockUsers[2], error: null });
+        });
+
+        it('should handle errors in bulk fetch', async () => {
+            const urls = [
+                'https://www.instagram.com/user1/',
+                'https://invalid-url.com/user2'
+            ];
+
+            const mockUser = { id: 1, uid: '111', username: 'user1', platform_name: 'instagram' };
+
+            mockDb.db = null;
+            mockDb.getUserByUsername.mockResolvedValueOnce(mockUser);
+            detectPlatform.mockImplementation((url) => {
+                if (url.includes('invalid-url')) return null;
+                if (url.includes('instagram.com')) return 'instagram';
+                return null;
+            });
+
+            const results = await bulkFetchUsers(urls, 'client_123', 2);
+
+            expect(results).toHaveLength(2);
+
+            // Find results by URL since order may vary
+            const user1Result = results.find(r => r.url === urls[0]);
+            const user2Result = results.find(r => r.url === urls[1]);
+
+            expect(user1Result).toEqual({ url: urls[0], user: mockUser, error: null });
+            // When platform cannot be detected, user is null (not an error throw)
+            expect(user2Result.user).toBeNull();
+        });
+
+        it('should respect concurrency limit', async () => {
+            const urls = [
+                'https://www.instagram.com/user1/',
+                'https://www.instagram.com/user2/',
+                'https://www.instagram.com/user3/',
+                'https://www.instagram.com/user4/'
+            ];
+
+            let concurrentCalls = 0;
+            let maxConcurrent = 0;
+
+            mockDb.getUserByUsername.mockImplementation(async () => {
+                concurrentCalls++;
+                maxConcurrent = Math.max(maxConcurrent, concurrentCalls);
+                await new Promise(resolve => setTimeout(resolve, 10));
+                concurrentCalls--;
+                return { id: 1, uid: '111', username: 'user', platform_name: 'instagram' };
+            });
+
+            await bulkFetchUsers(urls, 'client_123', 2);
+
+            expect(maxConcurrent).toBeLessThanOrEqual(2);
+        });
+    });
+
+    describe('userHasUid', () => {
+        it('should return true if user has UID', async () => {
+            mockDb.getUserByUsername.mockResolvedValue({
+                id: 1,
+                uid: '123456789',
+                username: 'testuser'
+            });
+
+            const result = await userHasUid('testuser');
+
+            expect(result).toBe(true);
+            expect(mockDb.getUserByUsername).toHaveBeenCalledWith('testuser');
+        });
+
+        it('should return false if user has no UID', async () => {
+            mockDb.getUserByUsername.mockResolvedValue({
+                id: 1,
+                uid: null,
+                username: 'testuser'
+            });
+
+            const result = await userHasUid('testuser');
+
+            expect(result).toBe(false);
+        });
+
+        it('should return false if user not found', async () => {
+            mockDb.getUserByUsername.mockResolvedValue(null);
+
+            const result = await userHasUid('testuser');
+
+            expect(result).toBe(false);
+        });
+
+        it('should close database after check', async () => {
+            mockDb.db = null;
+            mockDb.getUserByUsername.mockResolvedValue({ uid: '123' });
+
+            await userHasUid('testuser');
+
+            expect(mockDb.connect).toHaveBeenCalled();
+            expect(mockDb.close).toHaveBeenCalled();
+        });
+    });
+
+    describe('getUserByUid', () => {
+        it('should get user by UID', async () => {
+            const mockUser = {
+                id: 1,
+                uid: '123456789',
+                username: 'testuser',
+                platform_name: 'facebook'
+            };
+
+            mockDb.getUserByUid.mockResolvedValue(mockUser);
+
+            const result = await getUserByUid('facebook', '123456789');
+
+            expect(result).toEqual(mockUser);
+            expect(mockDb.getUserByUid).toHaveBeenCalledWith('facebook', '123456789');
+        });
+
+        it('should return null if user not found', async () => {
+            mockDb.getUserByUid.mockResolvedValue(null);
+
+            const result = await getUserByUid('instagram', '999999999');
+
+            expect(result).toBeNull();
+        });
+
+        it('should close database after fetch', async () => {
+            mockDb.db = null;
+            mockDb.getUserByUid.mockResolvedValue({ uid: '123' });
+
+            await getUserByUid('facebook', '123456789');
+
+            expect(mockDb.connect).toHaveBeenCalled();
+            expect(mockDb.close).toHaveBeenCalled();
+        });
+    });
+});
 
 ```

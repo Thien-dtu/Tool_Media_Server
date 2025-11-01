@@ -49,5 +49,21 @@ export async function downloadItems(payload) {
   })
 }
 
+export async function checkSavedStatus(username, ids) {
+  if (!ids || ids.length === 0) {
+    return { saved: [] } // Tránh gọi API không cần thiết
+  }
+  const resp = await fetch(`${apiBase()}/check-saved`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, ids }),
+  })
+  if (!resp.ok) {
+    console.error('Failed to check saved status:', await resp.text());
+    throw new Error('Failed to check saved status')
+  }
+  return resp.json() // Trả về { saved: [...] }
+}
+
 export function apiBase() { return API_BASE }
 

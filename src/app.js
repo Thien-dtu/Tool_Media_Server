@@ -8,6 +8,10 @@ const downloadRoutes = require('./routes/download');
 const reportRoutes = require('./routes/report');
 const savedRoutes = require('./routes/saved');
 
+// Import database query routes
+const dbReportsRoutes = require('./routes/reports');
+const dbUsersRoutes = require('./routes/users');
+
 const app = express();
 
 // Serve React build if exists (react-client/dist)
@@ -26,6 +30,10 @@ app.use('/', cursorRoutes);
 app.use('/', downloadRoutes);
 app.use('/', reportRoutes);
 app.use('/', savedRoutes);
+
+// Use database query routes (under /api/db prefix)
+app.use('/api/db/reports', dbReportsRoutes);
+app.use('/api/db/users', dbUsersRoutes);
 
 // SPA fallback to index.html for client-side routes
 app.get('*', (req, res, next) => {

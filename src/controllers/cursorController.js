@@ -12,10 +12,11 @@ const getLastCursors = async (req, res) => {
 
     // Try database first
     const db = getDatabase();
-    let dbConnected = false;
+    let dbWasConnected = db.db !== null;
     try {
-        await db.connect();
-        dbConnected = true;
+        if (!dbWasConnected) {
+            await db.connect();
+        }
 
         for (const username of usernames) {
             try {
@@ -32,8 +33,9 @@ const getLastCursors = async (req, res) => {
             }
         }
 
-        db.close();
+        if (!dbWasConnected) db.close();
     } catch (err) {
+        if (!dbWasConnected && db.db) db.close();
         console.warn('⚠️  Database connection failed, falling back to file-based cursors:', err.message);
     }
 
@@ -65,17 +67,19 @@ const saveLastCursor = async (req, res) => {
 
     // Save to DATABASE (new)
     const db = getDatabase();
-    let dbConnected = false;
+    let dbWasConnected = db.db !== null;
     try {
-        await db.connect();
-        dbConnected = true;
+        if (!dbWasConnected) {
+            await db.connect();
+        }
 
         await db.saveCursor(username, apiName, cursor, pagesLoaded || 0);
         console.log(`💾 Saved cursor to database for ${username}`);
 
-        db.close();
+        if (!dbWasConnected) db.close();
     } catch (err) {
         console.warn('⚠️  Error saving to database, falling back to file-only:', err.message);
+        if (!dbWasConnected && db.db) db.close();
     }
 
     // Save to FILE (old - parallel write during transition)
