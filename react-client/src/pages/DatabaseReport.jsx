@@ -39,7 +39,7 @@ export default function DatabaseReport() {
   const [lastFetchTime, setLastFetchTime] = useState(null)
 
   const uniqueApis = useMemo(() => [...new Set(data.map(item => item.apiName))], [data])
-  const uniqueUsernames = useMemo(() => [...new Set(data.flatMap(item => item.report.map(r => r.username)))], [data])
+  const uniqueUsernames = useMemo(() => [...new Set(data.flatMap(item => (item.report || []).map(r => r.username)))], [data])
 
   // Load data from database on mount
   useEffect(() => {
@@ -111,12 +111,12 @@ export default function DatabaseReport() {
       filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
     }
     if (filters.usernames.length > 0 && !filters.usernames.includes('all')) {
-      filtered = filtered.filter(item => item.report.some(r => filters.usernames.includes(r.username)))
+      filtered = filtered.filter(item => (item.report || []).some(r => filters.usernames.includes(r.username)))
     }
     if (filters.searchUsername) {
-      filtered = filtered.filter(item => item.report.some(r => r.username.toLowerCase().includes(filters.searchUsername.toLowerCase())))
+      filtered = filtered.filter(item => (item.report || []).some(r => r.username.toLowerCase().includes(filters.searchUsername.toLowerCase())))
     }
-    let flatReports = filtered.flatMap(item => item.report.map(r => ({ ...r, timestamp: item.timestamp, apiName: item.apiName })))
+    let flatReports = filtered.flatMap(item => (item.report || []).map(r => ({ ...r, timestamp: item.timestamp, apiName: item.apiName })))
     flatReports.sort((a, b) => (filters.sortOrder === 'desc' ? (b[filters.sortBy] ?? 0) - (a[filters.sortBy] ?? 0) : (a[filters.sortBy] ?? 0) - (b[filters.sortBy] ?? 0)))
     return flatReports.slice(0, filters.topN)
   }
@@ -139,7 +139,7 @@ export default function DatabaseReport() {
     }
 
     filtered.forEach(item => {
-      item.report.forEach(r => {
+      (item.report || []).forEach(r => {
         if (filters.searchUsername && !r.username.toLowerCase().includes(filters.searchUsername.toLowerCase())) return
         if (!userIdSet[r.username]) userIdSet[r.username] = new Set()
         if (Array.isArray(r.ids)) r.ids.forEach(id => userIdSet[r.username].add(id))
@@ -242,7 +242,7 @@ export default function DatabaseReport() {
                   Database Reports Loaded
                 </div>
                 <div style={{ fontSize: '14px', color: '#0369a1' }}>
-                  Total reports: {data.length} | Total entries: {data.reduce((sum, item) => sum + (item.report?.length || 0), 0)}
+                  Total reports: {data.length} | Total entries: {data.reduce((sum, item) => sum + ((item.report || []).length || 0), 0)}
                 </div>
               </div>
               <button
