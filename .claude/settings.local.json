@@ -12,7 +12,8 @@
       "Bash(sqlite3:*)",
       "Bash(npm run test:unit:*)",
       "Bash(npm test:*)",
-      "Bash(npm run test:coverage:*)"
+      "Bash(npm run test:coverage:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
