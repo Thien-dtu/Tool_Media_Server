@@ -8,6 +8,7 @@ export default function App() {
         <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Home</NavLink>
         <NavLink to="/batch" className={({ isActive }) => isActive ? 'active' : ''}>Batch</NavLink>
         <NavLink to="/report" className={({ isActive }) => isActive ? 'active' : ''}>Report</NavLink>
+        <NavLink to="/db-report" className={({ isActive }) => isActive ? 'active' : ''}>DB Report</NavLink>
         <NavLink to="/compare" className={({ isActive }) => isActive ? 'active' : ''}>Compare</NavLink>
         <NavLink to="/split" className={({ isActive }) => isActive ? 'active' : ''}>Split</NavLink>
         <NavLink to="/test" className={({ isActive }) => isActive ? 'active' : ''}>Test</NavLink>
