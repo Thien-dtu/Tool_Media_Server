@@ -13,13 +13,14 @@ const { getDatabase } = require('../../database/db-v2');
  * Query params: ?limit=100
  */
 router.get('/recent', async (req, res) => {
-    const limit = parseInt(req.query.limit) || 100;
+    const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
 
     const db = getDatabase();
     let dbWasConnected = db.db !== null;
     try {
         await db.connect();
-        const flatReports = await db.getRecentReports(limit * 10); // Get more rows to ensure we have enough grouped reports
+        // If no limit, fetch all reports; otherwise fetch more rows to ensure we have enough grouped reports
+        const flatReports = await db.getRecentReports(limit ? limit * 10 : undefined);
         if (!dbWasConnected) db.close();
 
         // Group flattened data by report_id to create nested structure
@@ -35,6 +36,7 @@ router.get('/recent', async (req, res) => {
             }
             grouped[key].report.push({
                 username: row.username,
+                uid: row.uid,
                 url: row.url || '',
                 total: row.total_items || 0,
                 have: row.saved_items || 0,
@@ -48,7 +50,11 @@ router.get('/recent', async (req, res) => {
             });
         });
 
-        const reports = Object.values(grouped).slice(0, limit);
+        // Apply limit after grouping if specified, otherwise return all
+        let reports = Object.values(grouped);
+        if (limit) {
+            reports = reports.slice(0, limit);
+        }
         res.json({ reports });
     } catch (err) {
         console.error('Error fetching recent reports:', err.message);

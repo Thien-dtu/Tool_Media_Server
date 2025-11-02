@@ -57,7 +57,7 @@ export default function DatabaseReport() {
     setIsLoading(true)
     setError('')
     try {
-      const { reports } = await getRecentReports(100)
+      const { reports } = await getRecentReports() // No limit - fetch all reports
       setData(reports || [])
       setLastFetchTime(new Date())
     } catch (err) {
@@ -90,13 +90,13 @@ export default function DatabaseReport() {
           usernames: usernames,
           uids: uids,
           startDate: filters.startDate ? dayjs(filters.startDate).toISOString() : undefined,
-          endDate: filters.endDate ? dayjs(filters.endDate).toISOString() : undefined,
-          limit: 100
+          endDate: filters.endDate ? dayjs(filters.endDate).toISOString() : undefined
+          // No limit - fetch all matching reports
         }
         const result = await queryReports(queryParams)
         reports = result.reports || []
       } else {
-        const result = await getRecentReports(100)
+        const result = await getRecentReports() // No limit - fetch all reports
         reports = result.reports || []
       }
 
