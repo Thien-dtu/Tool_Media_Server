@@ -197,7 +197,8 @@ SELECT
     rd.items_saved,
     rd.items_not_saved,
     rd.duration,
-    rd.pages_fetched
+    rd.pages_fetched,
+    rd.media_ids
 FROM api_reports ar
 JOIN api_types at ON ar.api_type_id = at.id
 JOIN report_details rd ON ar.id = rd.report_id
