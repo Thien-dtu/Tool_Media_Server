@@ -95,6 +95,7 @@ router.get('/date-range', async (req, res) => {
             }
             grouped[key].report.push({
                 username: row.username,
+                uid: row.uid,
                 url: row.url || '',
                 total: row.total_items || 0,
                 have: row.saved_items || 0,
