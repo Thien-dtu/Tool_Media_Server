@@ -13,7 +13,7 @@ import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import ReportFilters from '../components/report/ReportFilters.jsx'
-import { getRecentReports, getReportsByDateRange, queryReports } from '../lib/dbApiClient.js'
+import { getRecentReports, getReportStats, queryReports } from '../lib/dbApiClient.js'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 dayjs.extend(isSameOrAfter)
@@ -38,6 +38,8 @@ export default function DatabaseReport() {
   const [error, setError] = useState('')
   const [lastFetchTime, setLastFetchTime] = useState(null)
   const [expandedUsername, setExpandedUsername] = useState(null)
+  const [stats, setStats] = useState([])
+  const [showStats, setShowStats] = useState(false)
 
   // System API types - hardcoded list from database schema
   const uniqueApis = [
@@ -51,7 +53,17 @@ export default function DatabaseReport() {
   // Load data from database on mount
   useEffect(() => {
     fetchReports()
+    fetchStats()
   }, [])
+
+  const fetchStats = async () => {
+    try {
+      const { stats } = await getReportStats()
+      setStats(stats || [])
+    } catch (err) {
+      console.error('Error fetching stats:', err)
+    }
+  }
 
   const fetchReports = async () => {
     setIsLoading(true)
@@ -293,6 +305,95 @@ export default function DatabaseReport() {
           marginBottom: '20px'
         }}>
           {error}
+        </div>
+      )}
+
+      {/* API Performance Statistics */}
+      {stats.length > 0 && (
+        <div style={{
+          marginBottom: '20px',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          overflow: 'hidden'
+        }}>
+          <button
+            onClick={() => setShowStats(!showStats)}
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: '#f9fafb',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontWeight: '600',
+              fontSize: '16px',
+              color: '#374151'
+            }}
+          >
+            <span>📈 API Performance Statistics</span>
+            <span>{showStats ? '▼' : '▶'}</span>
+          </button>
+          {showStats && (
+            <div style={{ padding: '16px', background: 'white' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '16px'
+              }}>
+                {stats.map(stat => (
+                  <div key={stat.api_name} style={{
+                    padding: '16px',
+                    background: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <div style={{
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      color: '#1f2937',
+                      marginBottom: '12px',
+                      paddingBottom: '8px',
+                      borderBottom: '2px solid #3b82f6'
+                    }}>
+                      {stat.api_name}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280' }}>Total Calls:</span>
+                        <span style={{ fontWeight: '600', color: '#1f2937' }}>{stat.total_calls}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280' }}>Unique Users:</span>
+                        <span style={{ fontWeight: '600', color: '#1f2937' }}>{stat.unique_users}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280' }}>Items Fetched:</span>
+                        <span style={{ fontWeight: '600', color: '#10b981' }}>{stat.total_items_fetched || 0}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280' }}>Items Saved:</span>
+                        <span style={{ fontWeight: '600', color: '#059669' }}>{stat.total_items_saved || 0}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280' }}>Avg Duration:</span>
+                        <span style={{ fontWeight: '600', color: '#1f2937' }}>
+                          {stat.avg_duration_seconds ? `${stat.avg_duration_seconds.toFixed(1)}s` : 'N/A'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280' }}>Avg Pages:</span>
+                        <span style={{ fontWeight: '600', color: '#1f2937' }}>
+                          {stat.avg_pages_per_call ? stat.avg_pages_per_call.toFixed(1) : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
