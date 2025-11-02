@@ -21,7 +21,7 @@ dayjs.extend(isSameOrBefore)
 
 export default function DatabaseReport() {
   const defaultFilters = {
-    apiName: 'get_list_ig_user_stories',
+    apiName: '',
     startDate: '',
     endDate: '',
     usernames: [],
@@ -29,6 +29,7 @@ export default function DatabaseReport() {
     sortBy: 'total',
     sortOrder: 'desc',
     searchUsername: '',
+    searchUid: '',
   }
 
   const [data, setData] = useState([])
@@ -38,7 +39,14 @@ export default function DatabaseReport() {
   const [lastFetchTime, setLastFetchTime] = useState(null)
   const [expandedUsername, setExpandedUsername] = useState(null)
 
-  const uniqueApis = useMemo(() => [...new Set(data.map(item => item.apiName))], [data])
+  // System API types - hardcoded list from database schema
+  const uniqueApis = [
+    'get_list_fb_user_photos',
+    'get_list_fb_user_reels',
+    'get_list_fb_highlights',
+    'get_list_ig_post',
+    'get_list_ig_user_stories'
+  ]
 
   // Load data from database on mount
   useEffect(() => {
@@ -66,15 +74,12 @@ export default function DatabaseReport() {
     try {
       let reports
 
-      if (filters.startDate && filters.endDate) {
-        const startISO = dayjs(filters.startDate).toISOString()
-        const endISO = dayjs(filters.endDate).toISOString()
-        const result = await getReportsByDateRange(startISO, endISO)
-        reports = result.reports || []
-      } else if (filters.apiName || filters.searchUsername) {
+      // Use queryReports if any filter is specified
+      if (filters.apiName || filters.searchUsername || filters.searchUid || filters.startDate || filters.endDate) {
         const queryParams = {
           apiName: filters.apiName || undefined,
           username: filters.searchUsername || undefined,
+          uid: filters.searchUid || undefined,
           startDate: filters.startDate ? dayjs(filters.startDate).toISOString() : undefined,
           endDate: filters.endDate ? dayjs(filters.endDate).toISOString() : undefined,
           limit: 100
@@ -88,6 +93,11 @@ export default function DatabaseReport() {
 
       setData(reports)
       setLastFetchTime(new Date())
+
+      // Show message if no data found
+      if (reports.length === 0) {
+        setError('No reports found matching the specified filters')
+      }
     } catch (err) {
       console.error('Error fetching filtered reports:', err)
       setError(`Failed to fetch reports: ${err.message}`)

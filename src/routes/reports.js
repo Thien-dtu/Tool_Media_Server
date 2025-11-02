@@ -134,10 +134,10 @@ router.get('/stats', async (req, res) => {
 /**
  * POST /api/db/reports/query
  * Custom report query with filters
- * Body: { apiName, username, startDate, endDate, limit }
+ * Body: { apiName, username, uid, startDate, endDate, limit }
  */
 router.post('/query', async (req, res) => {
-    const { apiName, username, startDate, endDate, limit } = req.body;
+    const { apiName, username, uid, startDate, endDate, limit } = req.body;
 
     const db = getDatabase();
     let dbWasConnected = db.db !== null;
@@ -176,6 +176,11 @@ router.post('/query', async (req, res) => {
         if (username) {
             query += ` AND uh.username = ?`;
             params.push(username);
+        }
+
+        if (uid) {
+            query += ` AND u.uid = ?`;
+            params.push(uid);
         }
 
         if (startDate && endDate) {
