@@ -128,9 +128,9 @@ export default function DatabaseReport() {
 
     filtered.forEach(item => {
       (item.report || []).forEach(r => {
-        // Skip if username is null or doesn't match search filter
+        // Skip if username is null
         if (!r.username) return
-        if (filters.searchUsername && !r.username.toLowerCase().includes(filters.searchUsername.toLowerCase())) return
+        // Note: username filtering is now done by backend query, not here
         if (!userIdSet[r.username]) userIdSet[r.username] = new Set()
         if (Array.isArray(r.ids)) r.ids.forEach(id => userIdSet[r.username].add(id))
       })
