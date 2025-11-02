@@ -151,6 +151,7 @@ router.post('/query', async (req, res) => {
                 ar.timestamp,
                 at.name as api_name,
                 rd.user_id,
+                u.uid,
                 uh.username,
                 rd.url,
                 rd.total_items,
@@ -180,9 +181,10 @@ router.post('/query', async (req, res) => {
         }
 
         if (uids && Array.isArray(uids) && uids.length > 0) {
-            const placeholders = uids.map(() => '?').join(',');
-            query += ` AND u.uid IN (${placeholders})`;
-            params.push(...uids);
+            // Use LIKE for partial UID matching instead of exact IN matching
+            const uidConditions = uids.map(() => 'u.uid LIKE ?').join(' OR ');
+            query += ` AND (${uidConditions})`;
+            params.push(...uids.map(uid => `%${uid}%`));
         }
 
         if (startDate && endDate) {
@@ -225,6 +227,7 @@ router.post('/query', async (req, res) => {
             }
             grouped[key].report.push({
                 username: row.username,
+                uid: row.uid,
                 url: row.url || '',
                 total: row.total_items || 0,
                 have: row.items_saved || 0,
