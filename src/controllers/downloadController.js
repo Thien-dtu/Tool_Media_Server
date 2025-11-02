@@ -5,12 +5,12 @@ const { getFileTypeFromBuffer } = require('../utils/mediaUtils');
 const { formatTimestamp } = require('../utils/formatUtils');
 const { readSavedList, writeSavedList } = require('../utils/fileUtils');
 const { retryWithBackoff, shouldRetryNetworkError } = require('../utils/retryUtils');
-const { createConcurrencyLimiter } = require('../utils/concurrencyUtils');
+// const { createConcurrencyLimiter } = require('../utils/concurrencyUtils');
 const { getOrFetchUser } = require('../utils/userFetching');
 const { getDatabase } = require('../../database/db-v2');
 
 // Download concurrency limit (5 concurrent downloads)
-const downloadLimit = createConcurrencyLimiter(5);
+// const downloadLimit = createConcurrencyLimiter(5);
 
 // Helper function to download a single media item
 async function downloadMediaItem(mediaItem, imageDownloadDir, videoDownloadDir, itemUsername) {
@@ -230,12 +230,20 @@ const handleDownload = async (req, res) => {
             });
         }
 
-        // Download media items in parallel (max 5 concurrent)
-        const downloadPromises = mediaItemsToDownload.map(mediaItem =>
-            downloadLimit(() => downloadMediaItem(mediaItem, imageDownloadDir, videoDownloadDir, itemUsername))
-        );
+        // // Download media items in parallel (max 5 concurrent)
+        // const downloadPromises = mediaItemsToDownload.map(mediaItem =>
+        //     downloadLimit(() => downloadMediaItem(mediaItem, imageDownloadDir, videoDownloadDir, itemUsername))
+        // );
 
-        const results = await Promise.all(downloadPromises);
+        // const results = await Promise.all(downloadPromises);
+
+        // Download media items sequentially (one by one)
+        const results = [];
+        for (const mediaItem of mediaItemsToDownload) {
+            // Chờ cho mỗi item tải xong trước khi bắt đầu item tiếp theo
+            const result = await downloadMediaItem(mediaItem, imageDownloadDir, videoDownloadDir, itemUsername);
+            results.push(result);
+        }
 
         // Aggregate results and save to database + files (parallel writes)
         for (const result of results) {
