@@ -134,10 +134,10 @@ router.get('/stats', async (req, res) => {
 /**
  * POST /api/db/reports/query
  * Custom report query with filters
- * Body: { apiName, username, uid, startDate, endDate, limit }
+ * Body: { apiName, usernames, uids, startDate, endDate, limit }
  */
 router.post('/query', async (req, res) => {
-    const { apiName, username, uid, startDate, endDate, limit } = req.body;
+    const { apiName, usernames, uids, startDate, endDate, limit } = req.body;
 
     const db = getDatabase();
     let dbWasConnected = db.db !== null;
@@ -173,14 +173,16 @@ router.post('/query', async (req, res) => {
             params.push(apiName);
         }
 
-        if (username) {
-            query += ` AND uh.username = ?`;
-            params.push(username);
+        if (usernames && Array.isArray(usernames) && usernames.length > 0) {
+            const placeholders = usernames.map(() => '?').join(',');
+            query += ` AND uh.username IN (${placeholders})`;
+            params.push(...usernames);
         }
 
-        if (uid) {
-            query += ` AND u.uid = ?`;
-            params.push(uid);
+        if (uids && Array.isArray(uids) && uids.length > 0) {
+            const placeholders = uids.map(() => '?').join(',');
+            query += ` AND u.uid IN (${placeholders})`;
+            params.push(...uids);
         }
 
         if (startDate && endDate) {

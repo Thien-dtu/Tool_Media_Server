@@ -76,10 +76,19 @@ export default function DatabaseReport() {
 
       // Use queryReports if any filter is specified
       if (filters.apiName || filters.searchUsername || filters.searchUid || filters.startDate || filters.endDate) {
+        // Split comma-separated usernames/UIDs into arrays
+        const usernames = filters.searchUsername
+          ? filters.searchUsername.split(',').map(u => u.trim()).filter(u => u)
+          : undefined
+
+        const uids = filters.searchUid
+          ? filters.searchUid.split(',').map(u => u.trim()).filter(u => u)
+          : undefined
+
         const queryParams = {
           apiName: filters.apiName || undefined,
-          username: filters.searchUsername || undefined,
-          uid: filters.searchUid || undefined,
+          usernames: usernames,
+          uids: uids,
           startDate: filters.startDate ? dayjs(filters.startDate).toISOString() : undefined,
           endDate: filters.endDate ? dayjs(filters.endDate).toISOString() : undefined,
           limit: 100

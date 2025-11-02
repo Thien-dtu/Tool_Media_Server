@@ -14,8 +14,8 @@ export default function ReportFilters({ filters, uniqueApis, onChange, onReset }
         <label>End Date <input type="date" value={filters.endDate} onChange={e => onChange({ endDate: e.target.value })} /></label>
       </div>
       <div>
-        <label>Username <input type="text" placeholder="Search by username" value={filters.searchUsername || ''} onChange={e => onChange({ searchUsername: e.target.value })} /></label>
-        <label>UID <input type="text" placeholder="Search by UID" value={filters.searchUid || ''} onChange={e => onChange({ searchUid: e.target.value })} /></label>
+        <label>Username <input type="text" placeholder="Enter usernames (comma-separated)" value={filters.searchUsername || ''} onChange={e => onChange({ searchUsername: e.target.value })} /></label>
+        <label>UID <input type="text" placeholder="Enter UIDs (comma-separated)" value={filters.searchUid || ''} onChange={e => onChange({ searchUid: e.target.value })} /></label>
       </div>
       <div>
         <label>Top N <input type="number" min={1} value={filters.topN} onChange={e => onChange({ topN: parseInt(e.target.value) || 10 })} /></label>
