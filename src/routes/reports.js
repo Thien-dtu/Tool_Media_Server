@@ -145,6 +145,9 @@ router.post('/query', async (req, res) => {
         await db.connect();
 
         // Build dynamic query based on filters
+        // Use INNER JOIN for username_history when filtering by username
+        const useInnerJoin = (usernames && usernames.length > 0) || (uids && uids.length > 0);
+
         let query = `
             SELECT
                 ar.id,
@@ -161,9 +164,9 @@ router.post('/query', async (req, res) => {
                 rd.media_ids
             FROM api_reports ar
             JOIN api_types at ON ar.api_type_id = at.id
-            LEFT JOIN report_details rd ON ar.id = rd.report_id
-            LEFT JOIN users u ON rd.user_id = u.id
-            LEFT JOIN username_history uh ON u.id = uh.user_id AND uh.is_current = 1
+            JOIN report_details rd ON ar.id = rd.report_id
+            JOIN users u ON rd.user_id = u.id
+            ${useInnerJoin ? 'JOIN' : 'LEFT JOIN'} username_history uh ON u.id = uh.user_id AND uh.is_current = 1
             WHERE 1=1
         `;
         const params = [];
@@ -197,12 +200,18 @@ router.post('/query', async (req, res) => {
             params.push(parseInt(limit));
         }
 
+        // Debug logging
+        console.log('📊 Query:', query);
+        console.log('📊 Params:', params);
+
         const flatReports = await new Promise((resolve, reject) => {
             db.db.all(query, params, (err, rows) => {
                 if (err) reject(err);
                 else resolve(rows);
             });
         });
+
+        console.log('📊 Rows returned:', flatReports.length);
 
         if (!dbWasConnected) db.close();
 
