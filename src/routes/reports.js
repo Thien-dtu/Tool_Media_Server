@@ -194,10 +194,7 @@ router.post('/query', async (req, res) => {
 
         query += ` ORDER BY ar.timestamp DESC`;
 
-        if (limit) {
-            query += ` LIMIT ?`;
-            params.push(parseInt(limit));
-        }
+        // Don't apply LIMIT in SQL - we'll apply it after grouping in JavaScript
 
         // Debug logging
         console.log('📊 Query:', query);
@@ -241,7 +238,14 @@ router.post('/query', async (req, res) => {
             });
         });
 
-        const reports = Object.values(grouped);
+        // Apply limit after grouping (limit number of reports, not rows)
+        let reports = Object.values(grouped);
+        if (limit) {
+            reports = reports.slice(0, parseInt(limit));
+        }
+
+        console.log('📊 Grouped reports returned:', reports.length);
+
         res.json({ reports, count: reports.length });
     } catch (err) {
         console.error('Error executing custom report query:', err.message);
