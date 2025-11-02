@@ -105,7 +105,16 @@ class Database {
         // Try to find by uid first
         if (uid) {
             let user = await this.getUserByUid(platform, uid);
-            if (user) return user;
+            if (user) {
+                // Check if username changed
+                if (username && user.username && username !== user.username) {
+                    await this.updateUsername(user.id, username, profile_url);
+                    console.log(`🔄 Username changed: ${user.username} → ${username}`);
+                    // Re-fetch user with updated username
+                    user = await this.getUserByUid(platform, uid);
+                }
+                return user;
+            }
         }
 
         // Try to find by username
@@ -354,18 +363,6 @@ class Database {
         return await allAsync(this.db,
             'SELECT * FROM v_recent_reports LIMIT ?',
             [limit]
-        );
-    }
-
-    /**
-     * Get reports by date range
-     */
-    async getReportsByDateRange(startDate, endDate) {
-        return await allAsync(this.db,
-            `SELECT * FROM v_recent_reports
-             WHERE timestamp BETWEEN ? AND ?
-             ORDER BY timestamp DESC`,
-            [startDate, endDate]
         );
     }
 

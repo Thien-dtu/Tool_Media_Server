@@ -5,7 +5,7 @@ import StatusBanner from '../components/StatusBanner.jsx'
 import ProgressBars from '../components/common/ProgressBars.jsx'
 import CountDisplay from '../components/batch/CountDisplay.jsx'
 import NearestLocationModal from '../components/common/NearestLocationModal.jsx'
-import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus } from '../lib/apiClient.js'
+import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus, preFetchUsers } from '../lib/apiClient.js'
 
 const defaultApiParams = {
   get_list_fb_user_photos: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', type: '5', cursor: '' }, null, 2),
@@ -170,11 +170,25 @@ export default function Batch() {
       try { const usernames = shuffledUrlList.map(getUsernameFromUrl); const resp = await getLastCursors({ apiName, usernames }); lastCursors = resp.lastCursors || {} } catch {}
     }
 
+    // Pre-fetch all users to ensure UIDs are in database
+    setStatus('Đang kiểm tra và lấy UID cho người dùng...')
+    try {
+      const preFetchResult = await preFetchUsers(shuffledUrlList, clientId)
+      console.log(`✅ Pre-fetch complete: ${preFetchResult.summary.successful}/${preFetchResult.summary.total} users`)
+      if (preFetchResult.summary.failed > 0) {
+        setErrors(prev => [...prev, `⚠️ Không thể lấy UID cho ${preFetchResult.summary.failed} người dùng`])
+      }
+    } catch (err) {
+      console.error('Pre-fetch error:', err)
+      setErrors(prev => [...prev, `⚠️ Lỗi khi kiểm tra UID: ${err.message}`])
+    }
+
     for (let i = 0; i < shuffledUrlList.length; i++) {
       const url = shuffledUrlList[i]
       const username = getUsernameFromUrl(url)
       const statusPrefix = `URL ${i + 1}/${shuffledUrlList.length}`
-      const pushStatus = (m) => setStatus(`${statusPrefix}: ${m}`)
+      // const pushStatus = (m) => setStatus(`${statusPrefix}: ${m}`)
+      const pushStatus = (m, error = false) => setStatus(error ? `❌ ${statusPrefix}: ${m}` : `${statusPrefix}: ${m}`) // (Sửa nhỏ: thêm 'error' flag)
 
       let cursorToUse = ''
       if (apiName === 'get_list_fb_user_photos' || apiName === 'get_list_ig_post') {

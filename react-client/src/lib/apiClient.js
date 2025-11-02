@@ -65,5 +65,31 @@ export async function checkSavedStatus(username, ids) {
   return resp.json() // Trả về { saved: [...] }
 }
 
+/**
+ * Pre-fetch users with UIDs before making API calls
+ * Ensures all users are tracked in database with proper UIDs
+ * @param {string[]} urls - Array of profile URLs
+ * @param {string} clientId - WebSocket client ID
+ * @returns {Promise<{results: Array, summary: {total: number, successful: number, failed: number}}>}
+ */
+export async function preFetchUsers(urls, clientId) {
+  if (!urls || urls.length === 0) {
+    return { results: [], summary: { total: 0, successful: 0, failed: 0 } }
+  }
+
+  const resp = await fetch(`${API_BASE}/api/db/users/bulk-fetch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ urls, clientId, concurrency: 3 }),
+  })
+
+  if (!resp.ok) {
+    console.error('Failed to pre-fetch users:', await resp.text())
+    throw new Error('Failed to pre-fetch users')
+  }
+
+  return resp.json()
+}
+
 export function apiBase() { return API_BASE }
 

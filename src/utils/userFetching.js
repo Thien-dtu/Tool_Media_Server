@@ -116,33 +116,38 @@ async function getOrFetchUser(urlOrUsername, platform = null, clientId = null) {
             return user;
         }
 
-        // Step 4: Save or update user in database
-        if (user && !user.uid) {
-            // User exists but missing UID - update it
-            console.log(`🔄 Updating UID for existing user: ${username} → ${userInfo.uid}`);
-            const platformId = platform === 'facebook' ? 1 : 2;
-            await db.db.run(
-                'UPDATE users SET uid = ? WHERE id = ?',
-                [userInfo.uid, user.id]
-            );
+        // Step 4: Check if UID already exists (might be username change scenario)
+        const existingUserByUid = await db.getUserByUid(platform, userInfo.uid);
 
-            // Update username if API returned a different one
-            if (userInfo.username && userInfo.username !== username) {
-                await db.updateUsername(user.id, userInfo.username, url);
-                console.log(`🔄 Updated username: ${username} → ${userInfo.username}`);
+        if (existingUserByUid) {
+            // User exists by UID - check if username changed
+            if (existingUserByUid.username !== userInfo.username) {
+                console.log(`🔄 Username changed detected: ${existingUserByUid.username} → ${userInfo.username}`);
+                await db.updateUsername(existingUserByUid.id, userInfo.username, url);
+                user = await db.getUserByUid(platform, userInfo.uid);
+            } else {
+                console.log(`✅ Found existing user by UID: ${userInfo.username} → ${userInfo.uid} (${platform})`);
+                user = existingUserByUid;
             }
-
-            // Fetch updated user
+        } else if (user && !user.uid) {
+            // User exists by username but missing UID - update it
+            console.log(`🔄 Adding UID to existing user: ${username} → ${userInfo.uid}`);
+            await new Promise((resolve, reject) => {
+                db.db.run('UPDATE users SET uid = ? WHERE id = ?', [userInfo.uid, user.id], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
             user = await db.getUserByUid(platform, userInfo.uid);
         } else {
-            // Create new user with UID
+            // Completely new user
             user = await db.getOrCreateUser({
                 platform,
                 uid: userInfo.uid,
                 username: userInfo.username || username,
                 profile_url: url
             });
-            console.log(`✅ New user saved: ${userInfo.username || username} → ${userInfo.uid} (${platform})`);
+            console.log(`✅ New user created: ${userInfo.username || username} → ${userInfo.uid} (${platform})`);
         }
 
         return user;

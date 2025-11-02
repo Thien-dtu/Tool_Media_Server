@@ -5,7 +5,7 @@ import StatusBanner from '../components/StatusBanner.jsx'
 import ProgressBars from '../components/common/ProgressBars.jsx'
 import ResultsGrid from '../components/home/ResultsGrid.jsx'
 import NearestLocationModal from '../components/common/NearestLocationModal.jsx'
-import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus } from '../lib/apiClient.js'
+import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus, preFetchUsers } from '../lib/apiClient.js'
 
 const defaultApiParams = {
   get_list_fb_user_photos: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', type: '5', cursor: '' }, null, 2),
@@ -171,6 +171,19 @@ export default function Home() {
       try { const usernames = shuffledUrlList.map(getUsernameFromUrl); const resp = await getLastCursors({ apiName, usernames }); lastCursors = resp.lastCursors || {} } catch {}
     }
 
+    // Pre-fetch all users to ensure UIDs are in database
+    setStatus('Đang kiểm tra và lấy UID cho người dùng...')
+    try {
+      const preFetchResult = await preFetchUsers(shuffledUrlList, clientId)
+      console.log(`✅ Pre-fetch complete: ${preFetchResult.summary.successful}/${preFetchResult.summary.total} users`)
+      if (preFetchResult.summary.failed > 0) {
+        setErrors(prev => [...prev, `⚠️ Không thể lấy UID cho ${preFetchResult.summary.failed} người dùng`])
+      }
+    } catch (err) {
+      console.error('Pre-fetch error:', err)
+      setErrors(prev => [...prev, `⚠️ Lỗi khi kiểm tra UID: ${err.message}`])
+    }
+
     for (let i = 0; i < shuffledUrlList.length; i++) {
       const url = shuffledUrlList[i]
       const username = getUsernameFromUrl(url)
@@ -277,24 +290,41 @@ export default function Home() {
       if (itemsToDownload.length === 0) { setStatus('✅ Tất cả đã lưu, không có mục mới!'); return }
 
       // Download 5 items at a time for better performance
-      const batchSize = 5
+      // const batchSize = 5
+      // let completed = 0
+
+      // for (let i = 0; i < itemsToDownload.length; i += batchSize) {
+      //   const batch = itemsToDownload.slice(i, i + batchSize)
+
+      //   // Download batch in parallel
+      //   await Promise.all(batch.map(async item => {
+      //     try {
+      //       await downloadItems({ results: [item], apiName, clientId })
+      //       completed++
+      //       const percent = Math.round((completed / itemsToDownload.length) * 100)
+      //       setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${itemsToDownload.length}` })
+      //       setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
+      //     } catch (err) {
+      //       console.error('Download error:', err)
+      //     }
+      //   }))
+      // }
+
       let completed = 0
+      const totalToDownload = itemsToDownload.length
 
-      for (let i = 0; i < itemsToDownload.length; i += batchSize) {
-        const batch = itemsToDownload.slice(i, i + batchSize)
+      // Download items one by one (sequentially)
+      for (const item of itemsToDownload) {
+        try {
+          await downloadItems({ results: [item], apiName, clientId })
+        } catch (err) {
+          console.error('Download error:', err)
+        }
 
-        // Download batch in parallel
-        await Promise.all(batch.map(async item => {
-          try {
-            await downloadItems({ results: [item], apiName, clientId })
-            completed++
-            const percent = Math.round((completed / itemsToDownload.length) * 100)
-            setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${itemsToDownload.length}` })
-            setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
-          } catch (err) {
-            console.error('Download error:', err)
-          }
-        }))
+        completed++
+        const percent = Math.round((completed / totalToDownload) * 100)
+        setProgress({ totalPct: percent, totalText: `Đang tải về... (${percent}%)`, itemPct: percent, itemText: `Đã tải: ${completed} / ${totalToDownload}` })
+        setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
       }
 
       setStatus(`✅ Đã tải về tất cả mục mới! ${completed} / ${itemsToDownload.length}`)
