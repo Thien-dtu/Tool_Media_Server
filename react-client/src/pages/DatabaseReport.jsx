@@ -8,12 +8,11 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
+import { Bar } from 'react-chartjs-2'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import ReportFilters from '../components/report/ReportFilters.jsx'
-import ReportChart from '../components/report/ReportChart.jsx'
-import ReportTable from '../components/report/ReportTable.jsx'
 import { getRecentReports, getReportsByDateRange, queryReports } from '../lib/dbApiClient.js'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
@@ -37,9 +36,9 @@ export default function DatabaseReport() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [lastFetchTime, setLastFetchTime] = useState(null)
+  const [expandedUsername, setExpandedUsername] = useState(null)
 
   const uniqueApis = useMemo(() => [...new Set(data.map(item => item.apiName))], [data])
-  const uniqueUsernames = useMemo(() => [...new Set(data.flatMap(item => (item.report || []).map(r => r.username)))], [data])
 
   // Load data from database on mount
   useEffect(() => {
@@ -50,7 +49,6 @@ export default function DatabaseReport() {
     setIsLoading(true)
     setError('')
     try {
-      // Fetch recent reports (last 100)
       const { reports } = await getRecentReports(100)
       setData(reports || [])
       setLastFetchTime(new Date())
@@ -69,13 +67,11 @@ export default function DatabaseReport() {
       let reports
 
       if (filters.startDate && filters.endDate) {
-        // Use date range endpoint if both dates specified
         const startISO = dayjs(filters.startDate).toISOString()
         const endISO = dayjs(filters.endDate).toISOString()
         const result = await getReportsByDateRange(startISO, endISO)
         reports = result.reports || []
       } else if (filters.apiName || filters.searchUsername) {
-        // Use query endpoint for advanced filtering
         const queryParams = {
           apiName: filters.apiName || undefined,
           username: filters.searchUsername || undefined,
@@ -86,7 +82,6 @@ export default function DatabaseReport() {
         const result = await queryReports(queryParams)
         reports = result.reports || []
       } else {
-        // Default: fetch recent reports
         const result = await getRecentReports(100)
         reports = result.reports || []
       }
@@ -100,32 +95,6 @@ export default function DatabaseReport() {
       setIsLoading(false)
     }
   }
-
-  const filterData = () => {
-    let filtered = data
-    if (filters.apiName) filtered = filtered.filter(item => item.apiName === filters.apiName)
-    if (filters.startDate) {
-      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrAfter(dayjs(filters.startDate)))
-    }
-    if (filters.endDate) {
-      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
-    }
-    if (filters.usernames.length > 0 && !filters.usernames.includes('all')) {
-      filtered = filtered.filter(item => (item.report || []).some(r => filters.usernames.includes(r.username)))
-    }
-    if (filters.searchUsername) {
-      filtered = filtered.filter(item => (item.report || []).some(r => r.username.toLowerCase().includes(filters.searchUsername.toLowerCase())))
-    }
-    let flatReports = filtered.flatMap(item => (item.report || []).map(r => ({ ...r, timestamp: item.timestamp, apiName: item.apiName })))
-    flatReports.sort((a, b) => (filters.sortOrder === 'desc' ? (b[filters.sortBy] ?? 0) - (a[filters.sortBy] ?? 0) : (a[filters.sortBy] ?? 0) - (b[filters.sortBy] ?? 0)))
-    return flatReports.slice(0, filters.topN)
-  }
-
-  const filtered = filterData()
-  const chartData = useMemo(() => ({
-    labels: filtered.map(i => i.username),
-    datasets: [{ label: 'Total Posts', data: filtered.map(i => i.total), backgroundColor: 'rgba(75,192,192,0.2)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }],
-  }), [filtered])
 
   const filteredUniqueCounts = useMemo(() => {
     const userIdSet = {}
@@ -150,6 +119,89 @@ export default function DatabaseReport() {
       .sort((a, b) => (filters.sortOrder === 'desc' ? b.count - a.count : a.count - b.count))
       .slice(0, filters.topN || 10)
   }, [data, filters])
+
+  // Get detailed reports for a specific username
+  const getUserReports = (username) => {
+    let filtered = data
+    if (filters.apiName) filtered = filtered.filter(item => item.apiName === filters.apiName)
+    if (filters.startDate) {
+      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrAfter(dayjs(filters.startDate)))
+    }
+    if (filters.endDate) {
+      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
+    }
+
+    return filtered.flatMap(item =>
+      (item.report || [])
+        .filter(r => r.username === username)
+        .map(r => ({ ...r, timestamp: item.timestamp, apiName: item.apiName }))
+    )
+  }
+
+  const handleUsernameClick = (username) => {
+    setExpandedUsername(expandedUsername === username ? null : username)
+  }
+
+  // Chart data - only show users with IDs (horizontal bar chart)
+  const chartData = useMemo(() => {
+    const usersWithIds = filteredUniqueCounts.filter(u => u.count > 0)
+    return {
+      labels: usersWithIds.map(u => u.username),
+      datasets: [{
+        label: 'Unique Posts',
+        data: usersWithIds.map(u => u.count),
+        backgroundColor: 'rgba(75,192,192,0.6)',
+        borderColor: 'rgba(75,192,192,1)',
+        borderWidth: 1
+      }],
+    }
+  }, [filteredUniqueCounts])
+
+  const chartOptions = {
+    indexAxis: 'y', // Horizontal bar chart
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Number of Unique Posts'
+        }
+      },
+      y: {
+        ticks: {
+          font: {
+            size: 12
+          }
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Unique Post Count by User (Users with Posts Only)',
+        font: {
+          size: 16,
+          weight: 'bold'
+        }
+      }
+    },
+    layout: {
+      padding: {
+        left: 10,
+        right: 30,
+        top: 10,
+        bottom: 10
+      }
+    },
+    barThickness: 20, // Fixed bar thickness for consistent spacing
+    categoryPercentage: 0.8, // Space between categories
+    barPercentage: 0.7 // Space between bars in same category
+  }
 
   const handleReset = () => {
     setFilters(defaultFilters)
@@ -271,19 +323,104 @@ export default function DatabaseReport() {
             onReset={handleReset}
           />
 
-          <ReportChart chartData={chartData} />
+          {/* Horizontal Bar Chart - Only users with IDs */}
+          {chartData.labels.length > 0 && (
+            <div className="mt" style={{ marginBottom: '32px' }}>
+              <div style={{ height: `${Math.max(400, chartData.labels.length * 35)}px` }}>
+                <Bar data={chartData} options={chartOptions} />
+              </div>
+            </div>
+          )}
 
-          <ReportTable rows={filtered} />
-
+          {/* Expandable Unique Post Count Table */}
           <div className="mt">
             <h3>Filtered Unique Post Count (by IDs)</h3>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '12px' }}>
+              Click on a username to see detailed reports
+            </p>
             <table>
               <thead>
-                <tr><th>Username</th><th>Date Range</th><th>Unique Posts</th></tr>
+                <tr>
+                  <th>Username</th>
+                  <th>Date Range</th>
+                  <th>Unique Posts</th>
+                </tr>
               </thead>
               <tbody>
                 {filteredUniqueCounts.map(({ username, count }) => (
-                  <tr key={username}><td>{username}</td><td>{filters.startDate && filters.endDate ? `${filters.startDate} - ${filters.endDate}` : 'All'}</td><td>{count}</td></tr>
+                  <>
+                    <tr key={username}>
+                      <td>
+                        <span
+                          onClick={() => handleUsernameClick(username)}
+                          style={{
+                            color: '#2563eb',
+                            cursor: 'pointer',
+                            textDecoration: expandedUsername === username ? 'underline' : 'none',
+                            fontWeight: expandedUsername === username ? 'bold' : 'normal',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.color = '#1d4ed8'
+                            e.target.style.textDecoration = 'underline'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.color = '#2563eb'
+                            e.target.style.textDecoration = expandedUsername === username ? 'underline' : 'none'
+                          }}
+                        >
+                          {username}
+                        </span>
+                      </td>
+                      <td>{filters.startDate && filters.endDate ? `${filters.startDate} - ${filters.endDate}` : 'All'}</td>
+                      <td>{count}</td>
+                    </tr>
+                    {expandedUsername === username && (
+                      <tr key={`${username}-details`}>
+                        <td colSpan="3" style={{ padding: 0, background: '#f9fafb' }}>
+                          <div style={{ padding: '16px', borderTop: '2px solid #2563eb' }}>
+                            <h4 style={{ margin: '0 0 12px 0', color: '#1f2937' }}>
+                              Detailed Reports for {username}
+                            </h4>
+                            <div style={{ overflowX: 'auto' }}>
+                              <table style={{ width: '100%', fontSize: '13px' }}>
+                                <thead>
+                                  <tr style={{ background: '#e5e7eb' }}>
+                                    <th style={{ padding: '8px' }}>API</th>
+                                    <th style={{ padding: '8px' }}>Total</th>
+                                    <th style={{ padding: '8px' }}>Have</th>
+                                    <th style={{ padding: '8px' }}>No Have</th>
+                                    <th style={{ padding: '8px' }}>IDs Count</th>
+                                    <th style={{ padding: '8px' }}>Time</th>
+                                    <th style={{ padding: '8px' }}>Pages</th>
+                                    <th style={{ padding: '8px' }}>Timestamp</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {getUserReports(username).map((report, idx) => (
+                                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                      <td style={{ padding: '8px' }}>{report.apiName}</td>
+                                      <td style={{ padding: '8px', textAlign: 'center' }}>{report.total}</td>
+                                      <td style={{ padding: '8px', textAlign: 'center' }}>{report.have}</td>
+                                      <td style={{ padding: '8px', textAlign: 'center' }}>{report.nohave}</td>
+                                      <td style={{ padding: '8px', textAlign: 'center' }}>
+                                        {Array.isArray(report.ids) ? report.ids.length : 0}
+                                      </td>
+                                      <td style={{ padding: '8px' }}>{report.time}</td>
+                                      <td style={{ padding: '8px', textAlign: 'center' }}>{report.pages}</td>
+                                      <td style={{ padding: '8px' }}>
+                                        {new Date(report.timestamp).toLocaleString()}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
@@ -298,10 +435,10 @@ export default function DatabaseReport() {
           }}>
             <h3 style={{ margin: '0 0 12px 0', color: '#991b1b' }}>💡 Tips</h3>
             <ul style={{ margin: 0, paddingLeft: '20px', color: '#dc2626', fontSize: '14px' }}>
-              <li>Use "Apply Filters to Database Query" to fetch filtered data directly from database (faster for large datasets)</li>
-              <li>Local filters (below) work on loaded data only</li>
+              <li>Click on any username in the table above to expand and view detailed reports</li>
+              <li>The chart only shows users who have media IDs (posts with actual content)</li>
+              <li>Use "Apply Filters to Database Query" to fetch filtered data directly from database</li>
               <li>Reports are automatically saved to database when running API calls</li>
-              <li>Increase "Recent Reports" limit in database settings for more data</li>
             </ul>
           </div>
         </>
