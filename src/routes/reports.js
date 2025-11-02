@@ -39,7 +39,10 @@ router.get('/recent', async (req, res) => {
                 total: row.total_items || 0,
                 have: row.saved_items || 0,
                 nohave: (row.total_items || 0) - (row.saved_items || 0),
-                ids: row.media_ids ? row.media_ids.split(',') : [],
+                ids: (() => {
+                    try { return row.media_ids ? JSON.parse(row.media_ids) : []; }
+                    catch { return []; }
+                })(),
                 time: row.duration || '',
                 pages: row.pages_loaded || 0
             });
@@ -90,7 +93,10 @@ router.get('/date-range', async (req, res) => {
                 total: row.total_items || 0,
                 have: row.saved_items || 0,
                 nohave: (row.total_items || 0) - (row.saved_items || 0),
-                ids: row.media_ids ? row.media_ids.split(',') : [],
+                ids: (() => {
+                    try { return row.media_ids ? JSON.parse(row.media_ids) : []; }
+                    catch { return []; }
+                })(),
                 time: row.duration || '',
                 pages: row.pages_loaded || 0
             });
@@ -210,7 +216,10 @@ router.post('/query', async (req, res) => {
                 total: row.total_items || 0,
                 have: row.items_saved || 0,
                 nohave: row.items_not_saved || 0,
-                ids: row.media_ids ? row.media_ids.split(',') : [],
+                ids: (() => {
+                    try { return row.media_ids ? JSON.parse(row.media_ids) : []; }
+                    catch { return []; }
+                })(),
                 time: row.duration || '',
                 pages: row.pages_fetched || 0
             });
