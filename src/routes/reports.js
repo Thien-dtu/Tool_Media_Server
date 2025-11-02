@@ -64,61 +64,6 @@ router.get('/recent', async (req, res) => {
 });
 
 /**
- * GET /api/db/reports/date-range
- * Get reports by date range
- * Query params: ?startDate=2025-01-01&endDate=2025-01-31
- */
-router.get('/date-range', async (req, res) => {
-    const { startDate, endDate } = req.query;
-
-    if (!startDate || !endDate) {
-        return res.status(400).json({ error: 'Missing startDate or endDate query parameters' });
-    }
-
-    const db = getDatabase();
-    let dbWasConnected = db.db !== null;
-    try {
-        await db.connect();
-        const flatReports = await db.getReportsByDateRange(startDate, endDate);
-        if (!dbWasConnected) db.close();
-
-        // Group flattened data by report_id to create nested structure
-        const grouped = {};
-        flatReports.forEach(row => {
-            const key = row.report_id;
-            if (!grouped[key]) {
-                grouped[key] = {
-                    apiName: row.api_name,
-                    timestamp: row.timestamp,
-                    report: []
-                };
-            }
-            grouped[key].report.push({
-                username: row.username,
-                uid: row.uid,
-                url: row.url || '',
-                total: row.total_items || 0,
-                have: row.saved_items || 0,
-                nohave: (row.total_items || 0) - (row.saved_items || 0),
-                ids: (() => {
-                    try { return row.media_ids ? JSON.parse(row.media_ids) : []; }
-                    catch { return []; }
-                })(),
-                time: row.duration || '',
-                pages: row.pages_loaded || 0
-            });
-        });
-
-        const reports = Object.values(grouped);
-        res.json({ reports, count: reports.length });
-    } catch (err) {
-        console.error('Error fetching reports by date range:', err.message);
-        if (!dbWasConnected && db.db) db.close();
-        res.status(500).json({ error: 'Failed to fetch reports', message: err.message });
-    }
-});
-
-/**
  * GET /api/db/reports/stats
  * Get API performance statistics
  */
@@ -182,9 +127,16 @@ router.post('/query', async (req, res) => {
         }
 
         if (usernames && Array.isArray(usernames) && usernames.length > 0) {
-            const placeholders = usernames.map(() => '?').join(',');
-            query += ` AND uh.username IN (${placeholders})`;
-            params.push(...usernames);
+            // Old search by username exactly
+            // const placeholders = usernames.map(() => '?').join(',');
+            // query += ` AND uh.username IN (${placeholders})`;
+            // params.push(...usernames);
+            
+            // New search by username partially
+            const placeholders = usernames.map(() => 'uh.username LIKE ?').join(' OR ');
+            query += ` AND (${placeholders})`;
+            params.push(...usernames.map(name => `%${name}%`));
+            
         }
 
         if (uids && Array.isArray(uids) && uids.length > 0) {

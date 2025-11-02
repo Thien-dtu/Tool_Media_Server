@@ -11,6 +11,7 @@ const savedRoutes = require('./routes/saved');
 // Import database query routes
 const dbReportsRoutes = require('./routes/reports');
 const dbUsersRoutes = require('./routes/users');
+const dbAnalyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/', savedRoutes);
 // Use database query routes (under /api/db prefix)
 app.use('/api/db/reports', dbReportsRoutes);
 app.use('/api/db/users', dbUsersRoutes);
+app.use('/api/db/analytics', dbAnalyticsRoutes);
 
 // SPA fallback to index.html for client-side routes
 app.get('*', (req, res, next) => {
