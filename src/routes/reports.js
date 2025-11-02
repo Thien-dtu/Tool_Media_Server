@@ -10,21 +10,46 @@ const { getDatabase } = require('../../database/db-v2');
 /**
  * GET /api/db/reports/recent
  * Get recent API reports
- * Query params: ?limit=10
+ * Query params: ?limit=100
  */
 router.get('/recent', async (req, res) => {
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 100;
 
     const db = getDatabase();
+    let dbWasConnected = db.db !== null;
     try {
         await db.connect();
-        const reports = await db.getRecentReports(limit);
-        db.close();
+        const flatReports = await db.getRecentReports(limit * 10); // Get more rows to ensure we have enough grouped reports
+        if (!dbWasConnected) db.close();
 
+        // Group flattened data by report_id to create nested structure
+        const grouped = {};
+        flatReports.forEach(row => {
+            const key = row.report_id;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    apiName: row.api_name,
+                    timestamp: row.timestamp,
+                    report: []
+                };
+            }
+            grouped[key].report.push({
+                username: row.username,
+                url: row.url || '',
+                total: row.total_items || 0,
+                have: row.saved_items || 0,
+                nohave: (row.total_items || 0) - (row.saved_items || 0),
+                ids: row.media_ids ? row.media_ids.split(',') : [],
+                time: row.duration || '',
+                pages: row.pages_loaded || 0
+            });
+        });
+
+        const reports = Object.values(grouped).slice(0, limit);
         res.json({ reports });
     } catch (err) {
         console.error('Error fetching recent reports:', err.message);
-        if (db.db) db.close();
+        if (!dbWasConnected && db.db) db.close();
         res.status(500).json({ error: 'Failed to fetch reports', message: err.message });
     }
 });
@@ -42,15 +67,40 @@ router.get('/date-range', async (req, res) => {
     }
 
     const db = getDatabase();
+    let dbWasConnected = db.db !== null;
     try {
         await db.connect();
-        const reports = await db.getReportsByDateRange(startDate, endDate);
-        db.close();
+        const flatReports = await db.getReportsByDateRange(startDate, endDate);
+        if (!dbWasConnected) db.close();
 
+        // Group flattened data by report_id to create nested structure
+        const grouped = {};
+        flatReports.forEach(row => {
+            const key = row.report_id;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    apiName: row.api_name,
+                    timestamp: row.timestamp,
+                    report: []
+                };
+            }
+            grouped[key].report.push({
+                username: row.username,
+                url: row.url || '',
+                total: row.total_items || 0,
+                have: row.saved_items || 0,
+                nohave: (row.total_items || 0) - (row.saved_items || 0),
+                ids: row.media_ids ? row.media_ids.split(',') : [],
+                time: row.duration || '',
+                pages: row.pages_loaded || 0
+            });
+        });
+
+        const reports = Object.values(grouped);
         res.json({ reports, count: reports.length });
     } catch (err) {
         console.error('Error fetching reports by date range:', err.message);
-        if (db.db) db.close();
+        if (!dbWasConnected && db.db) db.close();
         res.status(500).json({ error: 'Failed to fetch reports', message: err.message });
     }
 });
@@ -61,15 +111,16 @@ router.get('/date-range', async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
     const db = getDatabase();
+    let dbWasConnected = db.db !== null;
     try {
         await db.connect();
         const stats = await db.getApiPerformance();
-        db.close();
+        if (!dbWasConnected) db.close();
 
         res.json({ stats });
     } catch (err) {
         console.error('Error fetching API stats:', err.message);
-        if (db.db) db.close();
+        if (!dbWasConnected && db.db) db.close();
         res.status(500).json({ error: 'Failed to fetch stats', message: err.message });
     }
 });
@@ -83,6 +134,7 @@ router.post('/query', async (req, res) => {
     const { apiName, username, startDate, endDate, limit } = req.body;
 
     const db = getDatabase();
+    let dbWasConnected = db.db !== null;
     try {
         await db.connect();
 
@@ -103,8 +155,8 @@ router.post('/query', async (req, res) => {
                 rd.media_ids
             FROM api_reports ar
             JOIN api_types at ON ar.api_type_id = at.id
-            JOIN report_details rd ON ar.id = rd.report_id
-            JOIN users u ON rd.user_id = u.id
+            LEFT JOIN report_details rd ON ar.id = rd.report_id
+            LEFT JOIN users u ON rd.user_id = u.id
             LEFT JOIN username_history uh ON u.id = uh.user_id AND uh.is_current = 1
             WHERE 1=1
         `;
@@ -132,19 +184,43 @@ router.post('/query', async (req, res) => {
             params.push(parseInt(limit));
         }
 
-        const reports = await new Promise((resolve, reject) => {
+        const flatReports = await new Promise((resolve, reject) => {
             db.db.all(query, params, (err, rows) => {
                 if (err) reject(err);
                 else resolve(rows);
             });
         });
 
-        db.close();
+        if (!dbWasConnected) db.close();
 
+        // Group flattened data by report id to create nested structure
+        const grouped = {};
+        flatReports.forEach(row => {
+            const key = row.id;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    apiName: row.api_name,
+                    timestamp: row.timestamp,
+                    report: []
+                };
+            }
+            grouped[key].report.push({
+                username: row.username,
+                url: row.url || '',
+                total: row.total_items || 0,
+                have: row.items_saved || 0,
+                nohave: row.items_not_saved || 0,
+                ids: row.media_ids ? row.media_ids.split(',') : [],
+                time: row.duration || '',
+                pages: row.pages_fetched || 0
+            });
+        });
+
+        const reports = Object.values(grouped);
         res.json({ reports, count: reports.length });
     } catch (err) {
         console.error('Error executing custom report query:', err.message);
-        if (db.db) db.close();
+        if (!dbWasConnected && db.db) db.close();
         res.status(500).json({ error: 'Failed to execute query', message: err.message });
     }
 });
