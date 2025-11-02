@@ -126,11 +126,24 @@ export default function DatabaseReport() {
       filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
     }
 
+    // Parse comma-separated usernames for frontend filtering
+    const usernameFilters = filters.searchUsername
+      ? filters.searchUsername.split(',').map(u => u.trim().toLowerCase()).filter(u => u)
+      : []
+
     filtered.forEach(item => {
       (item.report || []).forEach(r => {
         // Skip if username is null
         if (!r.username) return
-        // Note: username filtering is now done by backend query, not here
+
+        // Frontend filtering: if searchUsername is set, only show matching usernames
+        if (usernameFilters.length > 0) {
+          const matchesFilter = usernameFilters.some(filter =>
+            r.username.toLowerCase().includes(filter)
+          )
+          if (!matchesFilter) return
+        }
+
         if (!userIdSet[r.username]) userIdSet[r.username] = new Set()
         if (Array.isArray(r.ids)) r.ids.forEach(id => userIdSet[r.username].add(id))
       })
