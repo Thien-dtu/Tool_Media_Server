@@ -1,5 +1,5 @@
 const { readLastCursors, writeLastCursors } = require('../utils/fileUtils');
-const { getDatabase } = require('../../database/db-v2');
+const { getDatabase } = require('../../database/db-v3');
 
 // POST /get-last-cursors { apiName, usernames }
 const getLastCursors = async (req, res) => {

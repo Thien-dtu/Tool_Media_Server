@@ -4,7 +4,7 @@
  * Implements caching strategy for user data
  */
 
-const { getDatabase } = require('../../database/db-v2');
+const { getDatabase } = require('../../database/db-v3');
 const {
     detectPlatform,
     extractUsernameFromUrl,

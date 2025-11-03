@@ -3,287 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Công cụ so sánh JSONL/JSON</title>
-    <!-- Tải Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>So sánh Tệp JSON</title>
     <style>
-        /* Font Inter */
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8; /* Màu nền nhẹ nhàng */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
         }
-        /* Custom scrollbar for pre elements */
-        pre::-webkit-scrollbar {
-            height: 8px;
-            width: 8px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        pre::-webkit-scrollbar-track {
-            background: #e2e8f0; /* light gray blue */
-            border-radius: 10px;
+        h2 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
         }
-        pre::-webkit-scrollbar-thumb {
-            background: #94a3b8; /* slate gray */
-            border-radius: 10px;
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            align-items: center;
         }
-        pre::-webkit-scrollbar-thumb:hover {
-            background: #64748b; /* darker slate gray */
+        .controls label {
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .diff-pane {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            height: 60vh;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fafafa;
+        }
+        .diff-pane h3 {
+            margin-top: 0;
+        }
+        pre {
+            background-color: #eee;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-4xl w-full bg-white p-8 rounded-xl shadow-lg">
-        <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-8">So sánh và Hợp nhất tệp JSONL/JSON</h1>
+<body>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="flex flex-col items-center">
-                <label for="file1Input" class="block text-lg font-medium text-gray-700 mb-2">Tệp 1 (.jsonl hoặc .json)</label>
-                <input type="file" id="file1Input" accept=".jsonl, .json" class="block w-full text-sm text-gray-900
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-violet-50 file:text-violet-700
-                    hover:file:bg-violet-100 cursor-pointer rounded-lg border border-gray-300 p-2">
+    <div class="container">
+        <h2>So sánh Tệp JSON/JSONL</h2>
+        
+        <div class="controls">
+            <label for="file1">Tệp 1:</label>
+            <input type="file" id="file1" accept=".json,.jsonl">
+            
+            <label for="file2">Tệp 2:</label>
+            <input type="file" id="file2" accept=".json,.jsonl">
+            
+            <button onclick="onCompare()">So sánh</button>
+        </div>
+        
+        <div id="error-banner" class="error" style="display:none;"></div>
+        
+        <div class="results-grid">
+            <div class="diff-pane">
+                <h3>Khác biệt trong Tệp 1 (Chỉ có trong Tệp 1)</h3>
+                <div id="diff1"></div>
             </div>
-            <div class="flex flex-col items-center">
-                <label for="file2Input" class="block text-lg font-medium text-gray-700 mb-2">Tệp 2 (.jsonl hoặc .json)</label>
-                <input type="file" id="file2Input" accept=".jsonl, .json" class="block w-full text-sm text-gray-900
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-violet-50 file:text-violet-700
-                    hover:file:bg-violet-100 cursor-pointer rounded-lg border border-gray-300 p-2">
-            </div>
-        </div>
-
-        <div class="flex justify-center space-x-4 mb-8">
-            <button id="compareButton" class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md
-                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                transition duration-300 ease-in-out transform hover:scale-105">
-                So sánh
-            </button>
-            <button id="mergeButton" class="px-8 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-md
-                hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-                transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                Hợp nhất và Tải xuống
-            </button>
-        </div>
-
-        <div id="loadingIndicator" class="hidden text-center text-blue-600 font-medium mb-8">
-            Đang xử lý... Vui lòng chờ.
-        </div>
-
-        <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mb-8" role="alert">
-            <strong class="font-bold">Lỗi!</strong>
-            <span class="block sm:inline" id="errorText"></span>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-gray-50 p-6 rounded-xl shadow-inner border border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Khác biệt trong Tệp 1</h2>
-                <div id="diff1Output" class="bg-gray-100 p-4 rounded-lg border border-gray-300 min-h-[150px] overflow-auto max-h-[400px]">
-                    <p class="text-gray-500 text-center">Các dòng khác biệt từ Tệp 1 sẽ hiển thị ở đây.</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 p-6 rounded-xl shadow-inner border border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Khác biệt trong Tệp 2</h2>
-                <div id="diff2Output" class="bg-gray-100 p-4 rounded-lg border border-gray-300 min-h-[150px] overflow-auto max-h-[400px]">
-                    <p class="text-gray-500 text-center">Các dòng khác biệt từ Tệp 2 sẽ hiển thị ở đây.</p>
-                </div>
+            <div class="diff-pane">
+                <h3>Khác biệt trong Tệp 2 (Chỉ có trong Tệp 2)</h3>
+                <div id="diff2"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Lấy các phần tử DOM
-        const file1Input = document.getElementById('file1Input');
-        const file2Input = document.getElementById('file2Input');
-        const compareButton = document.getElementById('compareButton');
-        const mergeButton = document.getElementById('mergeButton'); // Nút hợp nhất mới
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const errorMessage = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-        const diff1Output = document.getElementById('diff1Output');
-        const diff2Output = document.getElementById('diff2Output');
-
-        let parsedLines1 = []; // Để lưu trữ các dòng đã phân tích cú pháp từ Tệp 1
-        let parsedLines2 = []; // Để lưu trữ các dòng đã phân tích cú pháp từ Tệp 2
-
-        // Hàm hiển thị lỗi
-        function showError(message) {
-            errorMessage.classList.remove('hidden');
-            errorText.textContent = message;
-        }
-
-        // Hàm ẩn lỗi
-        function hideError() {
-            errorMessage.classList.add('hidden');
-            errorText.textContent = '';
-        }
-
-        // Hàm xóa kết quả trước đó
-        function clearResults() {
-            diff1Output.innerHTML = '<p class="text-gray-500 text-center">Các dòng khác biệt từ Tệp 1 sẽ hiển thị ở đây.</p>';
-            diff2Output.innerHTML = '<p class="text-gray-500 text-center">Các dòng khác biệt từ Tệp 2 sẽ hiển thị ở đây.</p>';
-            hideError();
-            mergeButton.disabled = true; // Vô hiệu hóa nút hợp nhất khi xóa kết quả
-        }
-
-        // Hàm đọc nội dung tệp
+        // Hàm đọc tệp
         function readFileContent(file) {
             return new Promise((resolve, reject) => {
+                if (!file) {
+                    reject(new Error("Không có tệp nào được chọn."));
+                    return;
+                }
                 const reader = new FileReader();
-                reader.onload = (event) => resolve(event.target.result);
-                reader.onerror = (event) => reject(event.target.error);
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e.target.error);
                 reader.readAsText(file);
             });
         }
 
-        // Hàm xử lý nội dung tệp JSON/JSONL
+        // Hàm xử lý nội dung tệp
         function parseFileContent(content, fileName) {
-            if (fileName.endsWith('.json')) {
-                try {
+            try {
+                if (fileName.endsWith('.json')) {
                     const parsed = JSON.parse(content);
-                    if (Array.isArray(parsed)) {
-                        return parsed; // Nếu là mảng, trả về mảng các đối tượng
-                    } else {
-                        return [parsed]; // Nếu là một đối tượng, bọc nó trong một mảng
+                    // Xử lý cấu trúc đặc biệt của tệp 'following'
+                    if (parsed && Array.isArray(parsed.relationships_following)) {
+                        return parsed.relationships_following;
                     }
-                } catch (e) {
-                    throw new Error(`Lỗi phân tích cú pháp tệp JSON '${fileName}': ${e.message}`);
+                    // Xử lý JSON array thông thường
+                    return Array.isArray(parsed) ? parsed : [parsed];
+                } else if (fileName.endsWith('.jsonl')) {
+                    return content.split('\n')
+                                  .filter(l => l.trim() !== '')
+                                  .map(l => JSON.parse(l));
                 }
-            } else if (fileName.endsWith('.jsonl')) {
-                return content.split('\n')
-                              .filter(line => line.trim() !== '')
-                              .map(line => {
-                                  try {
-                                      return JSON.parse(line);
-                                  } catch (e) {
-                                      throw new Error(`Lỗi phân tích cú pháp dòng JSONL trong tệp '${fileName}': ${line} - ${e.message}`);
-                                  }
-                              });
-            } else {
-                throw new Error('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp .json hoặc .jsonl.');
+                throw new Error('Định dạng tệp không được hỗ trợ.');
+            } catch (e) {
+                throw new Error(`Lỗi khi xử lý ${fileName}: ${e.message}`);
             }
         }
 
-        // Hàm so sánh các tệp
-        compareButton.addEventListener('click', async () => {
-            clearResults(); // Xóa kết quả cũ
-            const file1 = file1Input.files[0];
-            const file2 = file2Input.files[0];
+        // Hàm hiển thị kết quả
+        function displayResults(elementId, diffStrings) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = ''; // Xóa kết quả cũ
+            if (diffStrings.length === 0) {
+                element.innerHTML = '<p>Không có khác biệt.</p>';
+                return;
+            }
+            
+            // Định dạng lại JSON cho đẹp
+            const formattedDiffs = diffStrings.map(s => {
+                try {
+                    const obj = JSON.parse(s);
+                    return JSON.stringify(obj, null, 2);
+                } catch {
+                    return s; // Fallback
+                }
+            });
+
+            element.innerHTML = formattedDiffs.map(text => `<pre>${text}</pre>`).join('');
+        }
+
+        // Hàm hiển thị lỗi
+        function showError(message) {
+            const errorBanner = document.getElementById('error-banner');
+            errorBanner.textContent = message;
+            errorBanner.style.display = 'block';
+        }
+
+        // Hàm so sánh chính
+        async function onCompare() {
+            // Đặt lại UI
+            document.getElementById('error-banner').style.display = 'none';
+            document.getElementById('diff1').innerHTML = '';
+            document.getElementById('diff2').innerHTML = '';
+
+            const file1 = document.getElementById('file1').files[0];
+            const file2 = document.getElementById('file2').files[0];
 
             if (!file1 || !file2) {
                 showError('Vui lòng chọn cả hai tệp để so sánh.');
                 return;
             }
 
-            loadingIndicator.classList.remove('hidden'); // Hiển thị chỉ báo tải
-
             try {
+                // Đọc nội dung tệp
                 const content1 = await readFileContent(file1);
                 const content2 = await readFileContent(file2);
 
-                parsedLines1 = parseFileContent(content1, file1.name);
-                parsedLines2 = parseFileContent(content2, file2.name);
+                // Xử lý nội dung tệp
+                const items1 = parseFileContent(content1, file1.name);
+                const items2 = parseFileContent(content2, file2.name);
 
-                const diffsInFile1 = [];
-                const diffsInFile2 = [];
+                // Chuyển đổi các đối tượng thành chuỗi để so sánh
+                const strings1 = items1.map(item => JSON.stringify(item));
+                const strings2 = items2.map(item => JSON.stringify(item));
 
-                const maxLength = Math.max(parsedLines1.length, parsedLines2.length);
+                // Tạo Set (tập hợp) để tra cứu hiệu quả
+                const set1 = new Set(strings1);
+                const set2 = new Set(strings2);
 
-                for (let i = 0; i < maxLength; i++) {
-                    const line1Obj = parsedLines1[i] || null;
-                    const line2Obj = parsedLines2[i] || null;
-
-                    // So sánh các đối tượng JSON sau khi đã phân tích cú pháp
-                    const stringifiedLine1 = line1Obj ? JSON.stringify(line1Obj, null, 2) : null;
-                    const stringifiedLine2 = line2Obj ? JSON.stringify(line2Obj, null, 2) : null;
-
-                    if (stringifiedLine1 !== stringifiedLine2) {
-                        if (stringifiedLine1 !== null) {
-                            diffsInFile1.push(stringifiedLine1);
-                        }
-                        if (stringifiedLine2 !== null) {
-                            diffsInFile2.push(stringifiedLine2);
-                        }
-                    }
-                }
+                // Lọc ra các mục chỉ có trong Tệp 1
+                const diff1_strings = strings1.filter(itemStr => !set2.has(itemStr));
+                
+                // Lọc ra các mục chỉ có trong Tệp 2
+                const diff2_strings = strings2.filter(itemStr => !set1.has(itemStr));
 
                 // Hiển thị kết quả
-                if (diffsInFile1.length > 0) {
-                    diff1Output.innerHTML = diffsInFile1.map(diff => `<pre class="bg-red-50 text-red-800 p-2 rounded-md mb-2 overflow-x-auto">${diff}</pre>`).join('');
-                } else {
-                    diff1Output.innerHTML = '<p class="text-gray-500 text-center">Không có khác biệt trong Tệp 1.</p>';
-                }
+                displayResults('diff1', diff1_strings);
+                displayResults('diff2', diff2_strings);
 
-                if (diffsInFile2.length > 0) {
-                    diff2Output.innerHTML = diffsInFile2.map(diff => `<pre class="bg-green-50 text-green-800 p-2 rounded-md mb-2 overflow-x-auto">${diff}</pre>`).join('');
-                } else {
-                    diff2Output.innerHTML = '<p class="text-gray-500 text-center">Không có khác biệt trong Tệp 2.</p>';
-                }
-
-                mergeButton.disabled = false; // Kích hoạt nút hợp nhất sau khi so sánh thành công
-
-            } catch (error) {
-                console.error("Lỗi khi so sánh tệp:", error);
-                showError(`Đã xảy ra lỗi khi xử lý tệp: ${error.message}.`);
-                mergeButton.disabled = true; // Vô hiệu hóa nút hợp nhất nếu có lỗi
-            } finally {
-                loadingIndicator.classList.add('hidden'); // Ẩn chỉ báo tải
+            } catch (e) {
+                showError(e.message);
             }
-        });
-
-        // Hàm hợp nhất và tải xuống
-        mergeButton.addEventListener('click', () => {
-            if (parsedLines1.length === 0 && parsedLines2.length === 0) {
-                showError('Không có dữ liệu để hợp nhất. Vui lòng so sánh các tệp trước.');
-                return;
-            }
-
-            const mergedContent = [];
-            const allLinesSet = new Set(); // Sử dụng Set để theo dõi các dòng đã được thêm vào (dạng chuỗi)
-
-            const maxLength = Math.max(parsedLines1.length, parsedLines2.length);
-
-            for (let i = 0; i < maxLength; i++) {
-                const line1Obj = parsedLines1[i] || null;
-                const line2Obj = parsedLines2[i] || null;
-
-                // Sử dụng JSON.stringify không có định dạng để so sánh và thêm vào Set
-                const stringifiedLine1 = line1Obj ? JSON.stringify(line1Obj) : null;
-                const stringifiedLine2 = line2Obj ? JSON.stringify(line2Obj) : null;
-
-                if (stringifiedLine1 === stringifiedLine2) {
-                    // Nếu hai dòng giống nhau, chỉ thêm một lần
-                    if (stringifiedLine1 !== null && !allLinesSet.has(stringifiedLine1)) {
-                        mergedContent.push(stringifiedLine1);
-                        allLinesSet.add(stringifiedLine1);
-                    }
-                } else {
-                    // Nếu hai dòng khác nhau, thêm cả hai (nếu tồn tại và chưa được thêm)
-                    if (stringifiedLine1 !== null && !allLinesSet.has(stringifiedLine1)) {
-                        mergedContent.push(stringifiedLine1);
-                        allLinesSet.add(stringifiedLine1);
-                    }
-                    if (stringifiedLine2 !== null && !allLinesSet.has(stringifiedLine2)) {
-                        mergedContent.push(stringifiedLine2);
-                        allLinesSet.add(stringifiedLine2);
-                    }
-                }
-            }
-
-            const mergedText = mergedContent.join('\n');
-            const blob = new Blob([mergedText], { type: 'application/jsonl' }); // Vẫn xuất ra .jsonl
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'merged_output.jsonl';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url); // Giải phóng URL đối tượng
-        });
+        }
     </script>
+
 </body>
 </html>

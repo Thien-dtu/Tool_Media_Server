@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 // const { readSavedList } = require('../utils/fileUtils');
-const { getDatabase } = require('../../database/db-v2');
+const { getDatabase } = require('../../database/db-v3');
 const { getOrFetchUser } = require('../utils/userFetching');
 
 // Helper function to check if file exists (async)

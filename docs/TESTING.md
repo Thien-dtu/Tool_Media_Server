@@ -31,8 +31,8 @@ tests/
 │   │   ├── downloadController.test.js ⏳ Pending
 │   │   ├── cursorController.test.js   ⏳ Pending
 │   │   └── reportController.test.js   ⏳ Pending
-│   └── database/
-│       └── db-v2.test.js               ⏳ Pending
+│   │   └── database/
+│   │       └── db-v3.test.js               ⏳ Pending
 ├── integration/
 │   ├── api/
 │   │   ├── reports.test.js            ⏳ Pending
@@ -192,7 +192,7 @@ describe('userFetching', () => {
 
 1. **Mock External Dependencies**
    ```javascript
-   jest.mock('../../database/db-v2');
+   jest.mock('../../database/db-v3');
    jest.mock('../../src/ws/websocket');
    ```
 
@@ -241,7 +241,7 @@ describe('userFetching', () => {
 ```javascript
 const request = require('supertest');
 const app = require('../../../src/app');
-const { getDatabase } = require('../../../database/db-v2');
+const { getDatabase } = require('../../../database/db-v3');
 
 describe('User API Integration', () => {
   let db;
@@ -354,7 +354,7 @@ const mockDb = {
   getRecentReports: jest.fn()
 };
 
-jest.mock('../../database/db-v2', () => ({
+jest.mock('../../database/db-v3', () => ({
   getDatabase: jest.fn(() => mockDb)
 }));
 ```
@@ -439,7 +439,7 @@ module.exports = {
 For integration tests, use an in-memory SQLite database:
 
 ```javascript
-const { getDatabase } = require('../database/db-v2');
+const { getDatabase } = require('../database/db-v3');
 
 beforeAll(async () => {
   process.env.DATABASE_URL = ':memory:';

@@ -1,58 +1,64 @@
-# Persona
+# GEMINI.md
 
-You are a senior full-stack developer. One of those rare 10x developers that has incredible knowledge.
+## Project Overview
 
-# Coding Guidelines
+This project is a full-stack media downloader application with a Node.js backend and a React frontend. It is designed to download media from platforms like Instagram and Facebook. The application uses a SQLite database to store metadata about users, media, and API call reports, providing a robust system for tracking and querying downloaded content.
 
-Follow these guidelines to ensure your code is clean, maintainable, and adheres to best practices. Remember, less code is better. Lines of code = Debt.
+The backend is built with Express.js and communicates with clients via WebSockets. The frontend is a React application built with Vite that provides a user interface for viewing and analyzing social media data.
 
-# Key Mindsets
+The project is in a transitional phase, migrating from a flat-file JSON/JSONL data storage system to a more robust SQLite database. This "Parallel Write Pattern" ensures data integrity and allows for a safe rollback if necessary.
 
-**1** **Simplicity**: Write simple and straightforward code.
-**2** **Readability**: Ensure your code is easy to read and understand.
-**3** **Performance**: Keep performance in mind but do not over-optimize at the cost of readability.
-**4** **Maintainability**: Write code that is easy to maintain and update.
-**5** **Testability**: Ensure your code is easy to test.
-**6** **Reusability**: Write reusable components and functions.
+## Key Technologies
 
-Code Guidelines
+*   **Backend:** Node.js, Express.js, WebSocket (`ws`)
+*   **Frontend:** React, Vite
+*   **Database:** SQLite
+*   **Testing:** Jest
 
-**1** **Utilize Early Returns**: Use early returns to avoid nested conditions and improve readability.
-**2** **Conditional Classes**: Prefer conditional classes over ternary operators for class attributes.
-**3** **Descriptive Names**: Use descriptive names for variables and functions. Prefix event handler functions with "handle" (e.g., handleClick, handleKeyDown).
-**4** **Constants Over Functions**: Use constants instead of functions where possible. Define types if applicable.
-**5** **Correct and DRY Code**: Focus on writing correct, best practice, DRY (Don't Repeat Yourself) code.
-**6** **Functional and Immutable Style**: Prefer a functional, immutable style unless it becomes much more verbose.
-**7** **Minimal Code Changes**: Only modify sections of the code related to the task at hand. Avoid modifying unrelated pieces of code. Accomplish goals with minimal code changes.
+## Building and Running
 
-Comments and Documentation
+### Backend
 
-* **Function Comments**: Add a comment at the start of each function describing what it does.
-* **JSDoc Comments**: Use JSDoc comments for JavaScript (unless it's TypeScript) and modern ES6 syntax.
+To run the backend server:
 
-Function Ordering
+1.  Install dependencies: `npm install`
+2.  Run in development mode: `npm start`
 
-* Order functions with those that are composing other functions appearing earlier in the file. For example, if you have a menu with multiple buttons, define the menu function above the buttons.
+The backend server will run on `http://localhost:3000`.
 
-Handling Bugs
+### Frontend
 
-* **TODO Comments**: If you encounter a bug in existing code, or the instructions lead to suboptimal or buggy code, add comments starting with "TODO:" outlining the problems.
+To run the frontend application:
 
-Example Pseudocode Plan and Implementation
+1.  Navigate to the `react-client` directory: `cd react-client`
+2.  Install dependencies: `npm install`
+3.  Run the development server: `npm run dev`
 
-When responding to questions, use the Chain of Thought method. Outline a detailed pseudocode plan step by step, then confirm it, and proceed to write the code. Here’s an example:
+The frontend will be accessible at `http://localhost:5173`.
 
-# Important: Minimal Code Changes
+### Database Migrations
 
-**Only modify sections of the code related to the task at hand.**
-**Avoid modifying unrelated pieces of code.**
-**Avoid changing existing comments.**
-**Avoid any kind of cleanup unless specifically instructed to.**
-**Accomplish the goal with the minimum amount of code changes.**
-**Code change = potential for bugs and technical debt.**
+The project includes several scripts for migrating the database schema and data. These scripts are located in the `database` directory.
 
-Follow these guidelines to produce high-quality code and improve your coding skills. If you have any questions or need clarification, don’t hesitate to ask!
+*   To run the initial migration from JSON to SQLite: `node database/migrate.js`
+*   To apply the latest platform ID migration: `node database/apply-migration.js`
+*   To migrate existing users to the new platform ID system: `node database/migrate-platform-ids.js`
 
-# Security Analysis Guidelines
+## Development Conventions
 
-When asked to perform a security scan, always use the Snyk MCP server. Prioritize reporting high-severity vulnerabilities first. For any identified dependency vulnerabilities, suggest updated versions that resolve the issue.
+*   **Database:** The database schema is defined in `docs/DATABASE_DESIGN.md`. The application is in a transitional phase, writing to both the new SQLite database and legacy JSON files.
+*   **API:** The backend provides a RESTful API for interacting with the database. The available endpoints are documented in `docs/API-ENDPOINTS.md`.
+*   **Testing:** The project uses Jest for backend unit testing. To run the tests, use the command `npm run test:unit`. The testing strategy and structure are outlined in `docs/TESTING.md`.
+*   **Platform ID Integration:** The application is moving towards using platform-specific IDs (e.g., Facebook UID, Instagram UUID) as primary identifiers for users, while maintaining backward compatibility with usernames. The integration process is detailed in `docs/PLATFORM_ID_INTEGRATION.md`.
+
+## Key Files and Directories
+
+*   `src/`: The Node.js backend source code.
+*   `react-client/`: The React frontend source code.
+*   `database/`: Database migration scripts and schema definitions.
+*   `docs/`: Project documentation.
+*   `data/`: JSON and JSONL data files.
+*   `scripts/`: Master migration script.
+*   `tests/`: Jest tests.
+*   `package.json`: Project dependencies and scripts.
+*   `README.md`: Project overview and setup instructions.

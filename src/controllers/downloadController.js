@@ -7,7 +7,7 @@ const { readSavedList, writeSavedList } = require('../utils/fileUtils');
 const { retryWithBackoff, shouldRetryNetworkError } = require('../utils/retryUtils');
 // const { createConcurrencyLimiter } = require('../utils/concurrencyUtils');
 const { getOrFetchUser } = require('../utils/userFetching');
-const { getDatabase } = require('../../database/db-v2');
+const { getDatabase } = require('../../database/db-v3');
 
 // Download concurrency limit (5 concurrent downloads)
 // const downloadLimit = createConcurrencyLimiter(5);

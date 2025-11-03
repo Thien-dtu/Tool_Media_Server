@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { getDatabase } = require('../../database/db-v2');
+const { getDatabase } = require('../../database/db-v3');
 const { getOrFetchUser, bulkFetchUsers } = require('../utils/userFetching');
 
 /**

@@ -12,10 +12,10 @@ const {
 } = require('../../../src/utils/userFetching');
 
 // Mock dependencies
-jest.mock('../../../database/db-v2');
+jest.mock('../../../database/db-v3');
 jest.mock('../../../src/utils/platformIdUtils');
 
-const { getDatabase } = require('../../../database/db-v2');
+const { getDatabase } = require('../../../database/db-v3');
 const {
     detectPlatform,
     extractUsernameFromUrl,

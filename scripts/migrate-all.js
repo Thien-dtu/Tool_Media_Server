@@ -97,7 +97,7 @@ async function migrateAll() {
 
         console.log('📝 Next Steps:');
         console.log('   1. Review verification results above');
-        console.log('   2. Test database queries: node database/db-v2.js');
+        console.log('   2. Test database queries: node database/db-v3.js');
         console.log('   3. Update application to use new database wrapper');
         console.log('   4. Commit changes to git\n');
 

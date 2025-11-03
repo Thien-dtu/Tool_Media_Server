@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getDatabase } = require('../../database/db-v2');
+const { getDatabase } = require('../../database/db-v3');
 
 const RESULT_DIR = path.join(process.cwd(), 'data');
 

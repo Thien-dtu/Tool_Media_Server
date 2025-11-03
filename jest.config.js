@@ -11,7 +11,7 @@ module.exports = {
     // Coverage configuration
     collectCoverageFrom: [
         'src/**/*.js',
-        'database/db-v2.js',
+        'database/db-v3.js',
         '!src/main.js',
         '!src/app.js',
         '!src/ws/**',
