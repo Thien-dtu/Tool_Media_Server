@@ -35,7 +35,7 @@ export default function UsernameChangesReport() {
 
   // Chart 1: Top Username Changers
   const top10ChartData = {
-    labels: topChangers.map(([uid]) => uid.substring(0, 12) + '...'),
+    labels: topChangers.map(([uid]) => uid.substring(0, 500)),
     datasets: [{
       label: 'Username Changes',
       data: topChangers.map(([, count]) => count),
@@ -80,7 +80,7 @@ export default function UsernameChangesReport() {
     .slice(0, 20)
 
   const top20ChartData = {
-    labels: top20Changers.map(([uid]) => uid.substring(0, 12) + '...'),
+    labels: top20Changers.map(([uid]) => uid.substring(0, 500)),
     datasets: [{
       label: 'Total Changes',
       data: top20Changers.map(([, count]) => count),
@@ -157,7 +157,7 @@ export default function UsernameChangesReport() {
             <tbody>
               {changes.map((change, idx) => (
                 <tr key={idx}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{change.uid.substring(0, 12)}...</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{change.uid.substring(0, 500)}</td>
                   <td>{change.username}</td>
                   <td>{change.platform_name}</td>
                   <td>{new Date(change.changed_at).toLocaleString()}</td>

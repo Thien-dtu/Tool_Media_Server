@@ -25,7 +25,7 @@ export default function MediaDeduplicationReport() {
 
   // Chart 1: User Count by Media
   const userCountChartData = {
-    labels: media.map(m => m.media_id.substring(0, 12) + '...'),
+    labels: media.map(m => m.media_id.substring(0, 500)),
     datasets: [{
       label: 'User Count',
       data: media.map(m => m.user_count),
@@ -35,7 +35,7 @@ export default function MediaDeduplicationReport() {
 
   // Chart 2: Download Count Distribution
   const downloadCountChartData = {
-    labels: media.map(m => m.media_id.substring(0, 12) + '...'),
+    labels: media.map(m => m.media_id.substring(0, 500)),
     datasets: [{
       label: 'Total Downloads',
       data: media.map(m => m.download_count),
@@ -45,16 +45,16 @@ export default function MediaDeduplicationReport() {
 
   // Chart 3: User vs Download Comparison
   const comparisonChartData = {
-    labels: media.slice(0, 10).map(m => m.media_id.substring(0, 12) + '...'),
+    labels: media.slice(0, 10).map(m => m.media_id.substring(0, 500)),
     datasets: [
       {
         label: 'Unique Users',
-        data: media.slice(0, 10).map(m => m.user_count),
+        data: media.slice(0, 500).map(m => m.user_count),
         backgroundColor: '#8b5cf6'
       },
       {
         label: 'Total Downloads',
-        data: media.slice(0, 10).map(m => m.download_count),
+        data: media.slice(0, 500).map(m => m.download_count),
         backgroundColor: '#10b981'
       }
     ]
@@ -79,10 +79,10 @@ export default function MediaDeduplicationReport() {
 
   // Chart 5: Download Frequency (Downloads per User)
   const frequencyChartData = {
-    labels: media.slice(0, 15).map(m => m.media_id.substring(0, 12) + '...'),
+    labels: media.slice(0, 500).map(m => m.media_id.substring(0, 500)),
     datasets: [{
       label: 'Avg Downloads per User',
-      data: media.slice(0, 15).map(m => (m.download_count / m.user_count).toFixed(2)),
+      data: media.slice(0, 500).map(m => (m.download_count / m.user_count).toFixed(2)),
       backgroundColor: '#f59e0b'
     }]
   }
@@ -145,7 +145,7 @@ export default function MediaDeduplicationReport() {
             <tbody>
               {media.map((item, idx) => (
                 <tr key={idx}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{item.media_id.substring(0, 24)}...</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{item.media_id.substring(0, 500)}</td>
                   <td style={{ fontWeight: '600', color: '#3b82f6' }}>{item.user_count}</td>
                   <td>{item.download_count}</td>
                   <td style={{ fontWeight: '600', color: '#f59e0b' }}>{(item.download_count / item.user_count).toFixed(2)}</td>

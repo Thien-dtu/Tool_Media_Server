@@ -165,43 +165,52 @@ export default function Batch() {
     // Save the shuffled order for traceability when there are multiple URLs
     if (shuffledUrlList.length > 1) { try { await saveShuffledUrls({ apiName, urls: shuffledUrlList, timestamp: new Date().toISOString() }) } catch {} }
 
-    let lastCursors = {}
-    if (apiName === 'get_list_fb_user_photos' || apiName === 'get_list_ig_post') {
-      try { const usernames = shuffledUrlList.map(getUsernameFromUrl); const resp = await getLastCursors({ apiName, usernames }); lastCursors = resp.lastCursors || {} } catch {}
-    }
-
-    // Pre-fetch all users to ensure UIDs are in database
-    setStatus('Đang kiểm tra và lấy UID cho người dùng...')
-    try {
-      const preFetchResult = await preFetchUsers(shuffledUrlList, clientId)
-      console.log(`✅ Pre-fetch complete: ${preFetchResult.summary.successful}/${preFetchResult.summary.total} users`)
-      if (preFetchResult.summary.failed > 0) {
-        setErrors(prev => [...prev, `⚠️ Không thể lấy UID cho ${preFetchResult.summary.failed} người dùng`])
-      }
-    } catch (err) {
-      console.error('Pre-fetch error:', err)
-      setErrors(prev => [...prev, `⚠️ Lỗi khi kiểm tra UID: ${err.message}`])
-    }
-
     for (let i = 0; i < shuffledUrlList.length; i++) {
       const url = shuffledUrlList[i]
       const username = getUsernameFromUrl(url)
       const statusPrefix = `URL ${i + 1}/${shuffledUrlList.length}`
-      // const pushStatus = (m) => setStatus(`${statusPrefix}: ${m}`)
-      const pushStatus = (m, error = false) => setStatus(error ? `❌ ${statusPrefix}: ${m}` : `${statusPrefix}: ${m}`) // (Sửa nhỏ: thêm 'error' flag)
+      const pushStatus = (m, error = false) => setStatus(error ? `❌ ${statusPrefix}: ${m}` : `${statusPrefix}: ${m}`)
+
+      // Fetch UID for this user sequentially
+      pushStatus('Đang kiểm tra UID...')
+      try {
+        const preFetchResult = await preFetchUsers([url], clientId)
+        if (preFetchResult.summary.failed > 0) {
+          pushStatus(`⚠️ Không thể lấy UID`, true)
+        }
+      } catch (err) {
+        console.error('Pre-fetch error:', err)
+        pushStatus(`⚠️ Lỗi khi kiểm tra UID: ${err.message}`, true)
+      }
 
       let cursorToUse = ''
       if (apiName === 'get_list_fb_user_photos' || apiName === 'get_list_ig_post') {
         if (startFromBeginning) {
           cursorToUse = ''
-        } else if (getFromNearest) {
-          const { cursor } = lastCursors[username] || { cursor: '' }
-          cursorToUse = cursor || ''
         } else {
-          // No checkbox selected - show modal for individual choice
-          const { cursor, pagesLoaded } = lastCursors[username] || { cursor: '', pagesLoaded: 0 }
-          const choice = await new Promise((resolve) => setModal({ open: true, username, cursor, pagesLoaded, resolve }))
-          cursorToUse = choice ? cursor : ''
+          // Get cursor for this individual user
+          pushStatus('Đang lấy cursor...')
+          try {
+            const resp = await getLastCursors({ apiName, usernames: [username] })
+            const lastCursor = resp.lastCursors?.[username]
+
+            if (getFromNearest) {
+              cursorToUse = lastCursor?.cursor || ''
+            } else {
+              // No checkbox selected - show modal for individual choice
+              const choice = await new Promise((resolve) => setModal({
+                open: true,
+                username,
+                cursor: lastCursor?.cursor || '',
+                pagesLoaded: lastCursor?.pagesLoaded || 0,
+                resolve
+              }))
+              cursorToUse = choice ? (lastCursor?.cursor || '') : ''
+            }
+          } catch (err) {
+            console.error('Error fetching cursor:', err)
+            cursorToUse = ''
+          }
         }
       }
 
