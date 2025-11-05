@@ -109,22 +109,19 @@ const handleDownload = async (req, res) => {
     const successUserDirs = new Set();
     const newSavedItems = [];
 
-    // Initialize database connection
+    // Initialize database connection (persistent singleton pattern)
     const db = getDatabase();
-    let dbWasConnected = db.db !== null;
+    let dbConnected = false;
     try {
-        if (!dbWasConnected) {
+        if (!db.db) {
             await db.connect();
         }
+        dbConnected = true;
         console.log('✅ Database connected for download tracking');
     } catch (err) {
         console.warn('⚠️  Database connection failed, falling back to file-only mode:', err.message);
-        if (!dbWasConnected && db.db) db.close();
+        dbConnected = false;
     }
-
-    // Read saved list once at the beginning (for parallel write during transition)
-    const savedList = await readSavedList();
-    const savedSet = new Set(savedList.map(e => `${e.username}|${e.id}`));
 
     for (const item of results) {
         if (!item.id || !item.username) {
@@ -138,7 +135,7 @@ const handleDownload = async (req, res) => {
 
         // Auto-fetch user with UID (smart caching)
         let user = null;
-        if (dbWasConnected) {
+        if (dbConnected) {
             try {
                 // Try to get/fetch user with UID
                 user = await getOrFetchUser(item.originalUrl || itemUsername, null, clientId);
@@ -154,7 +151,7 @@ const handleDownload = async (req, res) => {
 
         // Check if media already saved in database (if DB is connected)
         let isAlreadySaved = false;
-        if (dbWasConnected && user) {
+        if (dbConnected && user) {
             try {
                 isAlreadySaved = await db.isMediaSaved(itemUsername, item.id);
                 if (isAlreadySaved) {
@@ -164,13 +161,6 @@ const handleDownload = async (req, res) => {
             } catch (err) {
                 console.warn(`⚠️  Error checking saved status for ${item.id}:`, err.message);
             }
-        }
-
-        // Also check file-based saved list (for backward compatibility)
-        const fileKey = `${itemUsername}|${item.id}`;
-        if (savedSet.has(fileKey)) {
-            console.log(`⏭️  Skipping ${item.id} for ${itemUsername} - already in saved files`);
-            continue;
         }
 
         const baseDownloadDir = path.join(process.cwd(), 'result', safeUsername);
@@ -250,10 +240,8 @@ const handleDownload = async (req, res) => {
             totalDownloadCount += result.downloadCount;
             totalErrorCount += result.errorCount;
             if (result.savedItem) {
-                const key = `${result.savedItem.username}|${result.savedItem.id}`;
-
-                // Save to DATABASE (new)
-                if (dbWasConnected && user) {
+                // Save to DATABASE (primary)
+                if (dbConnected && user) {
                     try {
                         await db.saveMedia(itemUsername, result.savedItem.id);
                         console.log(`💾 Saved to database: ${result.savedItem.id} for ${itemUsername}`);
@@ -262,11 +250,8 @@ const handleDownload = async (req, res) => {
                     }
                 }
 
-                // Save to FILE (old - parallel write during transition)
-                if (!savedSet.has(key)) {
-                    newSavedItems.push(result.savedItem);
-                    savedSet.add(key);
-                }
+                // Save to FILE (backup - parallel write)
+                newSavedItems.push(result.savedItem);
             }
         }
 
@@ -305,21 +290,13 @@ const handleDownload = async (req, res) => {
 
     // Batch write saved items once at the end (for file-based backup)
     if (newSavedItems.length > 0) {
+        const savedList = await readSavedList();
         const updatedSavedList = savedList.concat(newSavedItems);
         await writeSavedList(updatedSavedList);
-        console.log(`✅ Batch saved ${newSavedItems.length} new items to saved files`);
+        console.log(`✅ Batch saved ${newSavedItems.length} new items to saved files (backup)`);
     }
 
-    // Close database connection
-    if (!dbWasConnected && db.db) {
-        try {
-            db.close();
-            console.log('✅ Database connection closed');
-        } catch (err) {
-            console.warn('⚠️  Error closing database:', err.message);
-        }
-    }
-
+    // Note: Database connection remains open (persistent singleton pattern)
     console.log(`✅ Download process finished. Downloaded: ${totalDownloadCount}, Errors: ${totalErrorCount}`);
 
     if (totalErrorCount === 0) {

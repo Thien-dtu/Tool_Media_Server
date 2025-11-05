@@ -91,5 +91,23 @@ export async function preFetchUsers(urls, clientId) {
   return resp.json()
 }
 
+// Batch progress tracking
+export async function getBatchProgress() {
+  const res = await fetch(`${API_BASE}/batch-progress`)
+  return res.json()
+}
+
+export async function saveBatchProgress(payload) {
+  await fetch(`${API_BASE}/batch-progress`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  })
+}
+
+export async function clearBatchProgress() {
+  await fetch(`${API_BASE}/batch-progress`, {
+    method: 'DELETE'
+  })
+}
+
 export function apiBase() { return API_BASE }
 

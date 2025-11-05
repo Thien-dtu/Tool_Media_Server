@@ -7,6 +7,8 @@ const cursorRoutes = require('./routes/cursor');
 const downloadRoutes = require('./routes/download');
 const reportRoutes = require('./routes/report');
 const savedRoutes = require('./routes/saved');
+const batchProgressRoutes = require('./routes/batchProgress');
+const diagnosticsRoutes = require('./routes/diagnostics');
 
 // Import database query routes
 const dbReportsRoutes = require('./routes/reports');
@@ -31,6 +33,8 @@ app.use('/', cursorRoutes);
 app.use('/', downloadRoutes);
 app.use('/', reportRoutes);
 app.use('/', savedRoutes);
+app.use('/', batchProgressRoutes);
+app.use('/', diagnosticsRoutes);
 
 // Use database query routes (under /api/db prefix)
 app.use('/api/db/reports', dbReportsRoutes);

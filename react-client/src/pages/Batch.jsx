@@ -1,11 +1,11 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import ApiSelect from '../components/common/ApiSelect.jsx'
 import ApiParamsEditor from '../components/common/ApiParamsEditor.jsx'
 import StatusBanner from '../components/StatusBanner.jsx'
 import ProgressBars from '../components/common/ProgressBars.jsx'
 import CountDisplay from '../components/batch/CountDisplay.jsx'
 import NearestLocationModal from '../components/common/NearestLocationModal.jsx'
-import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus, preFetchUsers } from '../lib/apiClient.js'
+import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus, preFetchUsers, getBatchProgress, saveBatchProgress, clearBatchProgress } from '../lib/apiClient.js'
 
 const defaultApiParams = {
   get_list_fb_user_photos: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', type: '5', cursor: '' }, null, 2),
@@ -56,6 +56,8 @@ export default function Batch() {
   const [errors, setErrors] = useState([])
   const [startFromBeginning, setStartFromBeginning] = useState(false)
   const [getFromNearest, setGetFromNearest] = useState(false)
+  const [autoDownload, setAutoDownload] = useState(false)
+  const [resumeFromLast, setResumeFromLast] = useState(false)
 
   const [allResults, setAllResults] = useState([])
   const [isDownloading, setIsDownloading] = useState(false)
@@ -64,9 +66,25 @@ export default function Batch() {
   const [modal, setModal] = useState({ open: false, username: '', cursor: '', pagesLoaded: 0, resolve: null })
   const [downloadedIds, setDownloadedIds] = useState(new Set())
   const [savedSet, setSavedSet] = useState(new Set())
+  const [lastBatchProgress, setLastBatchProgress] = useState(null)
 
   const clientId = useMemo(() => (import.meta.env.VITE_CLIENT_ID), [])
   const urlLogRef = useRef([])
+
+  // Load last batch progress on mount
+  useEffect(() => {
+    async function loadProgress() {
+      try {
+        const data = await getBatchProgress()
+        if (data.progress) {
+          setLastBatchProgress(data.progress)
+        }
+      } catch (err) {
+        console.error('Failed to load batch progress:', err)
+      }
+    }
+    loadProgress()
+  }, [])
 
   const setStatus = (msg, error = false) => {
     setOverallMsg(msg ? (error ? `❌ ${msg}` : msg) : '')
@@ -134,6 +152,55 @@ export default function Batch() {
     return { data: results, pagesLoaded: page }
   }
 
+  async function downloadItemsForUrl(fetchedData, username, urlIndex, totalUrls) {
+    if (fetchedData.length === 0) return { downloaded: 0, alreadySaved: 0 }
+
+    const statusPrefix = `URL ${urlIndex}/${totalUrls}`
+    const pushStatus = (m) => setStatus(`${statusPrefix}: ${m}`)
+
+    // Check saved status
+    let itemsToDownload = []
+    try {
+      const mediaIds = fetchedData.map(item => item.id).filter(Boolean)
+      const savedData = await checkSavedStatus(username, mediaIds)
+      const savedIdsArray = savedData.saved || []
+      const savedIdsSet = new Set(savedIdsArray)
+
+      // Update savedSet
+      setSavedSet(prevSet => {
+        const newItems = savedIdsArray.map(id => `${username}|${id}`)
+        return new Set([...prevSet, ...newItems])
+      })
+
+      itemsToDownload = fetchedData.filter(item => !savedIdsSet.has(item.id))
+    } catch (e) {
+      console.error('Error checking saved status:', e)
+      itemsToDownload = fetchedData
+    }
+
+    if (itemsToDownload.length === 0) {
+      pushStatus('✅ Tất cả đã lưu, không cần tải về')
+      return { downloaded: 0, alreadySaved: fetchedData.length }
+    }
+
+    pushStatus(`Đang tải về ${itemsToDownload.length} mục...`)
+    let completed = 0
+    for (const item of itemsToDownload) {
+      try {
+        await downloadItems({ results: [item], apiName, clientId })
+        completed++
+        const percent = Math.round((completed / itemsToDownload.length) * 100)
+        pushStatus(`Đang tải về... ${completed}/${itemsToDownload.length} (${percent}%)`)
+        setDownloadedIds(prev => new Set(prev).add(`${item.username}|${item.id}`))
+      } catch (e) {
+        console.error('Download error:', e)
+      }
+    }
+
+    pushStatus(`✅ Đã tải về ${completed}/${itemsToDownload.length} mục`)
+    return { downloaded: completed, alreadySaved: fetchedData.length - itemsToDownload.length }
+  }
+
   async function onMakeApiCall() {
     if (isFetching) return
     setIsFetching(true)
@@ -158,12 +225,41 @@ export default function Batch() {
     const urlList = urlField.split(/(?:,\s*|\n)+/).map(u => u.trim()).filter(Boolean)
     if (urlList.length === 0) { setStatus('Không có URL nào!', true); setIsFetching(false); return }
 
+    // Resume logic: filter out already completed URLs
+    let urlsToProcess = urlList
+    let completedUrls = []
+    if (resumeFromLast && lastBatchProgress && lastBatchProgress.apiName === apiName) {
+      completedUrls = lastBatchProgress.completedUrls || []
+      const completedSet = new Set(completedUrls)
+      urlsToProcess = urlList.filter(url => !completedSet.has(url))
+
+      if (urlsToProcess.length === 0) {
+        setStatus('✅ Tất cả các URL đã được xử lý trước đó!', false)
+        setIsFetching(false)
+        return
+      }
+
+      setStatus(`🔄 Phục hồi: Bỏ qua ${completedUrls.length} URL đã hoàn thành, còn ${urlsToProcess.length} URL cần xử lý`)
+      await sleep(2000)
+    }
+
     const report = []
     const startTime = Date.now()
-    const shuffledUrlList = urlList.length > 1 ? shuffleArray(urlList) : urlList
+    const shuffledUrlList = urlsToProcess.length > 1 ? shuffleArray(urlsToProcess) : urlsToProcess
 
     // Save the shuffled order for traceability when there are multiple URLs
     if (shuffledUrlList.length > 1) { try { await saveShuffledUrls({ apiName, urls: shuffledUrlList, timestamp: new Date().toISOString() }) } catch {} }
+
+    // Initialize batch progress
+    const batchStartTime = new Date().toISOString()
+    await saveBatchProgress({
+      apiName,
+      timestamp: batchStartTime,
+      totalUrls: urlList.length,
+      completedUrls: [...completedUrls],
+      completedUsernames: lastBatchProgress?.completedUsernames || [],
+      lastProcessedIndex: -1
+    })
 
     for (let i = 0; i < shuffledUrlList.length; i++) {
       const url = shuffledUrlList[i]
@@ -219,6 +315,12 @@ export default function Batch() {
       const { data: fetchedData, pagesLoaded } = await fetchApiDataForSingleUrl(apiName, currentApiParams, pushStatus)
       setAllResults(prev => prev.concat(fetchedData))
 
+      // Auto-download if enabled
+      if (autoDownload && fetchedData.length > 0) {
+        pushStatus('Bắt đầu tải về tự động...')
+        await downloadItemsForUrl(fetchedData, username, i + 1, shuffledUrlList.length)
+      }
+
       if ((apiName === 'get_list_fb_user_photos' || apiName === 'get_list_ig_post') && fetchedData.length > 0) {
         const lastCursor = [...fetchedData].reverse().find(item => item.cursor && item.cursor !== 'None')?.cursor
         if (lastCursor) { try { await saveLastCursor({ apiName, username, cursor: lastCursor, pagesLoaded }) } catch {} }
@@ -259,15 +361,45 @@ export default function Batch() {
       report.push(reportData.report[0])
       urlLogRef.current.push(`${statusPrefix} hoàn thành: Tổng ${totalItemsForUrl}, Đã tải ${haveItemsForUrl}, Trang ${pagesLoaded}, Thời gian ${durationUrlStr}`)
 
+      // Save progress after each URL
+      completedUrls.push(url)
+      const completedUsernames = lastBatchProgress?.completedUsernames || []
+      if (!completedUsernames.includes(username)) {
+        completedUsernames.push(username)
+      }
+      try {
+        await saveBatchProgress({
+          apiName,
+          timestamp: batchStartTime,
+          totalUrls: urlList.length,
+          completedUrls: [...completedUrls],
+          completedUsernames,
+          lastProcessedIndex: i
+        })
+      } catch (err) {
+        console.error('Failed to save batch progress:', err)
+      }
 
       if (i < shuffledUrlList.length - 1) { setStatus(`Đã hoàn thành ${i + 1}/${shuffledUrlList.length}. Đang chờ 1 giây...`); await sleep(1000) }
     }
 
     const durationStr = new Date(Date.now() - startTime).toISOString().substr(11, 8)
+    const autoDownloadSuffix = autoDownload ? ' (đã tự động tải về)' : ''
+
+    // Clear batch progress on successful completion
+    if (errors.length === 0) {
+      try {
+        await clearBatchProgress()
+        setLastBatchProgress(null)
+      } catch (err) {
+        console.error('Failed to clear batch progress:', err)
+      }
+    }
+
     if (errors.length > 0) {
-      setStatus(`⚠️ Hoàn thành trong ${durationStr} với ${errors.length} lỗi. Xem chi tiết bên dưới.`, true)
+      setStatus(`⚠️ Hoàn thành trong ${durationStr} với ${errors.length} lỗi${autoDownloadSuffix}. Xem chi tiết bên dưới.`, true)
     } else {
-      setStatus(`✅ Hoàn thành trong ${durationStr}.`)
+      setStatus(`✅ Hoàn thành trong ${durationStr}${autoDownloadSuffix}.`)
     }
     setIsFetching(false)
   }
@@ -348,6 +480,56 @@ export default function Batch() {
                 No option selected - will show modal for each URL
               </div>
             )}
+          </div>
+        )}
+
+        <div className="auto-download-option" style={{ margin: '12px 0', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={autoDownload}
+              onChange={(e) => setAutoDownload(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <span style={{ fontWeight: '600', color: '#166534' }}>Automatically download after fetching each URL</span>
+          </label>
+          <div style={{ marginTop: '6px', fontSize: '14px', color: '#15803d' }}>
+            When enabled, media will be downloaded immediately after each URL is processed (no need to click "Tải về tất cả")
+          </div>
+        </div>
+
+        {lastBatchProgress && (
+          <div className="recovery-status" style={{ margin: '12px 0', padding: '12px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fbbf24' }}>
+            <div style={{ marginBottom: '8px', fontWeight: '600', color: '#92400e' }}>
+              ⚠️ Phát hiện batch chưa hoàn thành
+            </div>
+            <div style={{ fontSize: '14px', color: '#78350f', marginBottom: '8px' }}>
+              <div>API: <strong>{lastBatchProgress.apiName}</strong></div>
+              <div>Tổng số URL: <strong>{lastBatchProgress.totalUrls}</strong></div>
+              <div>Đã hoàn thành: <strong>{lastBatchProgress.completedUrls?.length || 0}</strong> URL</div>
+              <div>Còn lại: <strong>{lastBatchProgress.totalUrls - (lastBatchProgress.completedUrls?.length || 0)}</strong> URL</div>
+              <div>Thời gian: {new Date(lastBatchProgress.timestamp).toLocaleString('vi-VN')}</div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={resumeFromLast}
+                onChange={(e) => setResumeFromLast(e.target.checked)}
+                style={{ marginRight: '8px' }}
+              />
+              <span style={{ fontWeight: '600', color: '#92400e' }}>Resume from last run (skip completed URLs)</span>
+            </label>
+            <button
+              onClick={async () => {
+                await clearBatchProgress()
+                setLastBatchProgress(null)
+                setResumeFromLast(false)
+                setStatus('🗑️ Đã xóa tiến trình cũ')
+              }}
+              style={{ marginTop: '8px', padding: '6px 12px', fontSize: '13px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            >
+              Xóa tiến trình cũ
+            </button>
           </div>
         )}
 

@@ -52,7 +52,7 @@ async function fileExists(filePath) {
 //     res.json({ saved: savedIds });
 // };
 
-// Endpoint to check saved images: NEW
+// Endpoint to check saved images: NEW (database-only, file is backup)
 const checkSaved = async (req, res) => {
     const { username, ids } = req.body;
     if (!username || !Array.isArray(ids)) {
@@ -60,58 +60,49 @@ const checkSaved = async (req, res) => {
     }
 
     if (ids.length === 0) {
-        return res.json({ saved: [] }); // Không có gì để kiểm tra
+        return res.json({ saved: [] });
     }
 
     const db = getDatabase();
-    let dbWasConnected = db.db !== null; // KIỂM TRA TRẠNG THÁI
     try {
-        if (!dbWasConnected) {
+        // Ensure connection (persistent singleton pattern)
+        if (!db.db) {
             await db.connect();
         }
 
-        // 1. Tìm user_id từ username
-        // Sử dụng db.getUserByUsername để đảm bảo user tồn tại, 
-        // vì nó đơn giản hơn và không cần gọi API
-        const user = await db.getUserByUsername(username); 
+        // 1. Find user_id from username
+        const user = await db.getUserByUsername(username);
 
         if (!user || !user.id) {
-            if (!dbWasConnected) db.close();
-            // Nếu không tìm thấy user, chắc chắn chưa có media nào được lưu
+            // If user not found, definitely no saved media
             return res.json({ saved: [] });
         }
 
-        // 2. Tạo placeholders cho truy vấn SQL (ví dụ: ?,?,?)
+        // 2. Create SQL placeholders (e.g., ?,?,?)
         const placeholders = ids.map(() => '?').join(',');
 
-        // 3. Thực hiện MỘT truy vấn SQL duy nhất
+        // 3. Execute single SQL query
         const sql = `
-            SELECT media_id 
-            FROM saved_media 
+            SELECT media_id
+            FROM saved_media
             WHERE user_id = ? AND media_id IN (${placeholders})
         `;
-        
+
         const params = [user.id, ...ids];
 
         const rows = await new Promise((resolve, reject) => {
-            if (!db.db) {
-                return reject(new Error("Lỗi xung đột: Kết nối CSDL đã bị đóng."));
-            }
-             db.db.all(sql, params, (err, rows) => {
+            db.db.all(sql, params, (err, rows) => {
                 if (err) reject(err);
                 else resolve(rows);
             });
         });
 
-        if (!dbWasConnected) db.close();
-
-        // 4. Trả về mảng các ID đã được tìm thấy
+        // 4. Return array of found IDs
         const savedIds = rows.map(row => row.media_id);
         res.json({ saved: savedIds });
 
     } catch (err) {
         console.error('Error in /check-saved:', err.message);
-        if (!dbWasConnected && db.db) db.close();
         res.status(500).json({ error: 'Server error while checking saved media' });
     }
 };
@@ -125,37 +116,31 @@ const checkSaved = async (req, res) => {
 // Endpoint to return the list of saved images: NEW
 const getSavedList = async (req, res) => {
     const db = getDatabase();
-    let dbWasConnected = db.db !== null;
     try {
-        if (!dbWasConnected) {
+        // Ensure connection (persistent singleton pattern)
+        if (!db.db) {
             await db.connect();
         }
-        
-        // Truy vấn CSDL để lấy tất cả media đã lưu
+
+        // Query database for all saved media
         const list = await new Promise((resolve, reject) => {
-            // Lấy username và media_id, giống định dạng file JSON cũ
             const sql = `
                 SELECT uh.username, sm.media_id as id
                 FROM saved_media sm
                 JOIN users u ON sm.user_id = u.id
                 JOIN username_history uh ON u.id = uh.user_id AND uh.is_current = 1
             `;
-            if (!db.db) {
-                return reject(new Error("Lỗi xung đột: Kết nối CSDL đã bị đóng."));
-            }
             db.db.all(sql, [], (err, rows) => {
                 if (err) reject(err);
                 else resolve(rows);
             });
         });
-        
-        if (!dbWasConnected) db.close();
-        res.json({ list }); // <-- TRẢ VỀ KẾT QUẢ TỪ SQLITE
+
+        res.json({ list });
 
     } catch (err) {
         console.error('Error fetching saved list from DB:', err.message);
-        if (!dbWasConnected && db.db) db.close();
-        res.status(500).json({ list: [] }); // Trả về mảng rỗng nếu có lỗi
+        res.status(500).json({ list: [] });
     }
 };
 
