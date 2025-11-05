@@ -404,3 +404,30 @@ export async function getSummaryDashboard(params = {}) {
   }
   return res.json()
 }
+
+// ==================== PLATFORM URLS ENDPOINTS ====================
+
+/**
+ * Get all profile URLs for a specific platform
+ * @param {string} platform - Platform name (facebook or instagram)
+ * @returns {Promise<{platform: string, count: number, urls: Array, details: Array}>}
+ */
+export async function getPlatformUrls(platform) {
+  const res = await fetch(`${API_BASE}/api/db/platform-urls/${platform}`)
+  if (!res.ok) {
+    throw new Error(`Failed to fetch platform URLs: ${res.statusText}`)
+  }
+  return res.json()
+}
+
+/**
+ * Get all profile URLs grouped by platform
+ * @returns {Promise<{platforms: Array, total: number}>}
+ */
+export async function getAllPlatformUrls() {
+  const res = await fetch(`${API_BASE}/api/db/platform-urls`)
+  if (!res.ok) {
+    throw new Error(`Failed to fetch all platform URLs: ${res.statusText}`)
+  }
+  return res.json()
+}
