@@ -45,6 +45,7 @@ const TiktokDataViewer = lazy(() => import('./pages/TiktokDataViewer.jsx'))
 const StoryViewer = lazy(() => import('./pages/StoryViewer.jsx'))
 const Following = lazy(() => import('./pages/Following.jsx'))
 const FollowingUrls = lazy(() => import('./pages/FollowingUrls.jsx'))
+const PlatformUrls = lazy(() => import('./pages/PlatformUrls.jsx'))
 
 // Lazy load report page components
 const SummaryDashboard = lazy(() => import('./pages/reports/SummaryDashboard.jsx'))
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
       { path: 'stories', element: <Suspense fallback={<LoadingFallback />}><StoryViewer /></Suspense> },
       { path: 'following', element: <Suspense fallback={<LoadingFallback />}><Following /></Suspense> },
       { path: 'following-urls', element: <Suspense fallback={<LoadingFallback />}><FollowingUrls /></Suspense> },
+      { path: 'platform-urls', element: <Suspense fallback={<LoadingFallback />}><PlatformUrls /></Suspense> },
 
       // Analytics & Reports pages
       { path: 'reports/summary', element: <Suspense fallback={<LoadingFallback />}><SummaryDashboard /></Suspense> },

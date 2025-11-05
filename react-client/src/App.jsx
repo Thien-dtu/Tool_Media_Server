@@ -59,6 +59,7 @@ export default function App() {
         <NavLink to="/stories" className={({ isActive }) => isActive ? 'active' : ''}>Stories</NavLink>
         <NavLink to="/following" className={({ isActive }) => isActive ? 'active' : ''}>Following</NavLink>
         <NavLink to="/following-urls" className={({ isActive }) => isActive ? 'active' : ''}>Following URLs</NavLink>
+        <NavLink to="/platform-urls" className={({ isActive }) => isActive ? 'active' : ''}>Platform URLs</NavLink>
       </nav>
       <main className="content">
         <Outlet />

@@ -14,6 +14,7 @@ const diagnosticsRoutes = require('./routes/diagnostics');
 const dbReportsRoutes = require('./routes/reports');
 const dbUsersRoutes = require('./routes/users');
 const dbAnalyticsRoutes = require('./routes/analytics');
+const platformUrlsRoutes = require('./routes/platformUrls');
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use('/', diagnosticsRoutes);
 app.use('/api/db/reports', dbReportsRoutes);
 app.use('/api/db/users', dbUsersRoutes);
 app.use('/api/db/analytics', dbAnalyticsRoutes);
+app.use('/api/db/platform-urls', platformUrlsRoutes);
 
 // SPA fallback to index.html for client-side routes
 app.get('*', (req, res, next) => {
