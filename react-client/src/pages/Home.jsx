@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import ApiSelect from '../components/common/ApiSelect.jsx'
 import ApiParamsEditor from '../components/common/ApiParamsEditor.jsx'
 import StatusBanner from '../components/StatusBanner.jsx'
@@ -65,9 +65,43 @@ export default function Home() {
   const [downloadingIds, setDownloadingIds] = useState(new Set())
   const [downloadedIds, setDownloadedIds] = useState(new Set())
   const [savedSet, setSavedSet] = useState(new Set())
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(-1)
 
   const clientId = useMemo(() => (import.meta.env.VITE_CLIENT_ID), [])
   const urlLogRef = useRef([])
+
+  // Flatten media list to include carousel items
+  const flattenedMedia = useMemo(() => {
+    const flattened = []
+    allResults.forEach((item, itemIndex) => {
+      // Add main media
+      flattened.push({
+        media: item.video ? (item.video?.play_uri || item.video) : item.image,
+        isVideo: !!item.video,
+        caption: item.caption,
+        username: item.username,
+        itemIndex,
+        carouselIndex: null,
+        originalItem: item
+      })
+
+      // Add carousel items if present
+      if (Array.isArray(item.carousel) && item.carousel.length > 0) {
+        item.carousel.forEach((carouselItem, carouselIdx) => {
+          flattened.push({
+            media: carouselItem.video || carouselItem.image,
+            isVideo: !!carouselItem.video,
+            caption: item.caption,
+            username: item.username,
+            itemIndex,
+            carouselIndex: carouselIdx,
+            originalItem: item
+          })
+        })
+      }
+    })
+    return flattened
+  }, [allResults])
 
   const setStatus = (msg, error = false) => {
     setOverallMsg(msg ? (error ? `❌ ${msg}` : msg) : '')
@@ -93,6 +127,40 @@ export default function Home() {
     setGetFromNearest(checked)
     if (checked) setStartFromBeginning(false)
   }
+
+  const handleMediaClick = (index) => {
+    setSelectedMediaIndex(index)
+  }
+
+  const goToPrevMedia = useCallback(() => {
+    if (flattenedMedia.length === 0) return
+    const newIndex = (selectedMediaIndex - 1 + flattenedMedia.length) % flattenedMedia.length
+    setSelectedMediaIndex(newIndex)
+  }, [flattenedMedia, selectedMediaIndex])
+
+  const goToNextMedia = useCallback(() => {
+    if (flattenedMedia.length === 0) return
+    const newIndex = (selectedMediaIndex + 1) % flattenedMedia.length
+    setSelectedMediaIndex(newIndex)
+  }, [flattenedMedia, selectedMediaIndex])
+
+  useEffect(() => {
+    if (selectedMediaIndex === -1) return
+    const onKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goToPrevMedia()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goToNextMedia()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setSelectedMediaIndex(-1)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selectedMediaIndex, goToPrevMedia, goToNextMedia])
 
   async function fetchApiDataForSingleUrl(apiNameLocal, paramsBase, pushStatus) {
     let results = []
@@ -412,6 +480,8 @@ export default function Home() {
         downloadingIds={downloadingIds}
         downloadedIds={downloadedIds}
         onDownload={onDownloadOne}
+        onMediaClick={handleMediaClick}
+        flattenedMedia={flattenedMedia}
       />
 
       <NearestLocationModal
@@ -421,7 +491,28 @@ export default function Home() {
         pagesLoaded={modal.pagesLoaded}
         onClose={(choice) => { const resolver = modal.resolve; setModal(m => ({ ...m, open: false, resolve: null })); if (resolver) resolver(choice) }}
       />
+
+      {selectedMediaIndex >= 0 && selectedMediaIndex < flattenedMedia.length && (
+        <MediaModal
+          mediaItem={flattenedMedia[selectedMediaIndex]}
+          onClose={() => setSelectedMediaIndex(-1)}
+          onPrev={goToPrevMedia}
+          onNext={goToNextMedia}
+        />
+      )}
     </div>
   )
 }
+
+const MediaModal = ({ mediaItem, onClose }) => (
+  <div className="media-modal-overlay" onClick={onClose}>
+    <div className="media-modal-content" onClick={(e) => e.stopPropagation()}>
+      {mediaItem.isVideo ? (
+        <video src={mediaItem.media} controls autoPlay className="modal-media" />
+      ) : (
+        <img src={mediaItem.media} alt={mediaItem.caption || 'Media'} className="modal-media" />
+      )}
+    </div>
+  </div>
+)
 
