@@ -1,21 +1,9 @@
 import { useMemo, useState, useEffect } from 'react'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js'
-import { Bar } from 'react-chartjs-2'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import ReportFilters from '../components/report/ReportFilters.jsx'
-import { getRecentReports, getReportStats, queryReports } from '../lib/dbApiClient.js'
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
+import { getRecentReports, getReportStats, queryReports, getUsernameHistory } from '../lib/dbApiClient.js'
 dayjs.extend(isSameOrAfter)
 dayjs.extend(isSameOrBefore)
 
@@ -30,6 +18,7 @@ export default function DatabaseReport() {
     sortOrder: 'desc',
     searchUsername: '',
     searchUid: '',
+    hasNameChanges: false,
   }
 
   const [data, setData] = useState([])
@@ -38,6 +27,7 @@ export default function DatabaseReport() {
   const [error, setError] = useState('')
   const [lastFetchTime, setLastFetchTime] = useState(null)
   const [expandedUsername, setExpandedUsername] = useState(null)
+  const [usernameHistory, setUsernameHistory] = useState([])
   const [stats, setStats] = useState([])
   const [showStats, setShowStats] = useState(false)
 
@@ -87,7 +77,7 @@ export default function DatabaseReport() {
       let reports
 
       // Use queryReports if any filter is specified
-      if (filters.apiName || filters.searchUsername || filters.searchUid || filters.startDate || filters.endDate) {
+      if (filters.apiName || filters.searchUsername || filters.searchUid || filters.startDate || filters.endDate || filters.hasNameChanges) {
         // Split comma-separated usernames/UIDs into arrays
         const usernames = filters.searchUsername
           ? filters.searchUsername.split(',').map(u => u.trim()).filter(u => u)
@@ -102,7 +92,8 @@ export default function DatabaseReport() {
           usernames: usernames,
           uids: uids,
           startDate: filters.startDate ? dayjs(filters.startDate).toISOString() : undefined,
-          endDate: filters.endDate ? dayjs(filters.endDate).toISOString() : undefined
+          endDate: filters.endDate ? dayjs(filters.endDate).toISOString() : undefined,
+          hasNameChanges: filters.hasNameChanges || undefined
           // No limit - fetch all matching reports
         }
         const result = await queryReports(queryParams)
@@ -196,69 +187,22 @@ export default function DatabaseReport() {
     )
   }
 
-  const handleUsernameClick = (username) => {
-    setExpandedUsername(expandedUsername === username ? null : username)
-  }
-
-  // Chart data - only show users with IDs (horizontal bar chart)
-  const chartData = useMemo(() => {
-    const usersWithIds = filteredUniqueCounts.filter(u => u.count > 0)
-    return {
-      labels: usersWithIds.map(u => u.username),
-      datasets: [{
-        label: 'Unique Posts',
-        data: usersWithIds.map(u => u.count),
-        backgroundColor: 'rgba(75,192,192,0.6)',
-        borderColor: 'rgba(75,192,192,1)',
-        borderWidth: 1
-      }],
+  const handleUsernameClick = async (username) => {
+    if (expandedUsername === username) {
+      // Collapse if already expanded
+      setExpandedUsername(null)
+      setUsernameHistory([])
+    } else {
+      // Expand and fetch username history
+      setExpandedUsername(username)
+      try {
+        const { history } = await getUsernameHistory(username, 10)
+        setUsernameHistory(history || [])
+      } catch (err) {
+        console.error('Error fetching username history:', err)
+        setUsernameHistory([])
+      }
     }
-  }, [filteredUniqueCounts])
-
-  const chartOptions = {
-    indexAxis: 'y', // Horizontal bar chart
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      x: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Number of Unique Posts'
-        }
-      },
-      y: {
-        ticks: {
-          font: {
-            size: 12
-          }
-        }
-      }
-    },
-    plugins: {
-      legend: {
-        display: false
-      },
-      title: {
-        display: true,
-        text: 'Unique Post Count by User (Users with Posts Only)',
-        font: {
-          size: 16,
-          weight: 'bold'
-        }
-      }
-    },
-    layout: {
-      padding: {
-        left: 10,
-        right: 30,
-        top: 10,
-        bottom: 10
-      }
-    },
-    barThickness: 20, // Fixed bar thickness for consistent spacing
-    categoryPercentage: 0.8, // Space between categories
-    barPercentage: 0.7 // Space between bars in same category
   }
 
   const handleReset = () => {
@@ -470,15 +414,6 @@ export default function DatabaseReport() {
             onReset={handleReset}
           />
 
-          {/* Horizontal Bar Chart - Only users with IDs */}
-          {chartData.labels.length > 0 && (
-            <div className="mt" style={{ marginBottom: '32px' }}>
-              <div style={{ height: `${Math.max(400, chartData.labels.length * 35)}px` }}>
-                <Bar data={chartData} options={chartOptions} />
-              </div>
-            </div>
-          )}
-
           {/* Expandable Unique Post Count Table */}
           <div className="mt">
             <h3>Filtered Unique Post Count (by IDs)</h3>
@@ -526,6 +461,48 @@ export default function DatabaseReport() {
                       <tr key={`${username}-details`}>
                         <td colSpan="3" style={{ padding: 0, background: '#f9fafb' }}>
                           <div style={{ padding: '16px', borderTop: '2px solid #2563eb' }}>
+                            {/* Username History Table */}
+                            {usernameHistory.length > 0 && (
+                              <div style={{ marginBottom: '24px' }}>
+                                <h4 style={{ margin: '0 0 12px 0', color: '#1f2937' }}>
+                                  Username Change History
+                                </h4>
+                                <div style={{ overflowX: 'auto' }}>
+                                  <table style={{ width: '100%', fontSize: '13px' }}>
+                                    <thead>
+                                      <tr style={{ background: '#e5e7eb' }}>
+                                        <th style={{ padding: '8px' }}>Username</th>
+                                        <th style={{ padding: '8px' }}>Changed At</th>
+                                        <th style={{ padding: '8px' }}>Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {usernameHistory.map((entry, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                          <td style={{ padding: '8px' }}>{entry.username}</td>
+                                          <td style={{ padding: '8px' }}>
+                                            {dayjs(entry.changed_at).format('DD/MM/YYYY HH:mm:ss')}
+                                          </td>
+                                          <td style={{ padding: '8px' }}>
+                                            <span style={{
+                                              padding: '2px 8px',
+                                              borderRadius: '4px',
+                                              fontSize: '12px',
+                                              fontWeight: '500',
+                                              background: entry.is_current ? '#d1fae5' : '#f3f4f6',
+                                              color: entry.is_current ? '#065f46' : '#6b7280'
+                                            }}>
+                                              {entry.is_current ? 'Current' : 'Previous'}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
+
                             <h4 style={{ margin: '0 0 12px 0', color: '#1f2937' }}>
                               Detailed Reports for {username}
                             </h4>
@@ -556,7 +533,7 @@ export default function DatabaseReport() {
                                       <td style={{ padding: '8px' }}>{report.time}</td>
                                       <td style={{ padding: '8px', textAlign: 'center' }}>{report.pages}</td>
                                       <td style={{ padding: '8px' }}>
-                                        {new Date(report.timestamp).toLocaleString()}
+                                        {dayjs(report.timestamp).format('DD/MM/YYYY HH:mm:ss')}
                                       </td>
                                     </tr>
                                   ))}
@@ -583,7 +560,6 @@ export default function DatabaseReport() {
             <h3 style={{ margin: '0 0 12px 0', color: '#991b1b' }}>💡 Tips</h3>
             <ul style={{ margin: 0, paddingLeft: '20px', color: '#dc2626', fontSize: '14px' }}>
               <li>Click on any username in the table above to expand and view detailed reports</li>
-              <li>The chart only shows users who have media IDs (posts with actual content)</li>
               <li>Use "Apply Filters to Database Query" to fetch filtered data directly from database</li>
               <li>Reports are automatically saved to database when running API calls</li>
             </ul>
