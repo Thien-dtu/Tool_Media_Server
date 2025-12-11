@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -40,6 +40,8 @@ export default function DatabaseReport() {
   const [expandedUsername, setExpandedUsername] = useState(null)
   const [stats, setStats] = useState([])
   const [showStats, setShowStats] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 50
 
   // System API types - hardcoded list from database schema
   const uniqueApis = [
@@ -177,6 +179,19 @@ export default function DatabaseReport() {
       .sort((a, b) => (filters.sortOrder === 'desc' ? b.count - a.count : a.count - b.count))
       .slice(0, filters.topN || 10)
   }, [data, filters])
+
+  // Reset to first page when data changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filteredUniqueCounts.length])
+
+  // Pagination Logic
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    return filteredUniqueCounts.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [filteredUniqueCounts, currentPage])
+
+  const totalPages = Math.ceil(filteredUniqueCounts.length / ITEMS_PER_PAGE)
 
   // Get detailed reports for a specific username
   const getUserReports = (username) => {
@@ -481,7 +496,12 @@ export default function DatabaseReport() {
 
           {/* Expandable Unique Post Count Table */}
           <div className="mt">
-            <h3>Filtered Unique Post Count (by IDs)</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Filtered Unique Post Count (by IDs)</h3>
+              <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                Showing {Math.min(filteredUniqueCounts.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)} - {Math.min(filteredUniqueCounts.length, currentPage * ITEMS_PER_PAGE)} of {filteredUniqueCounts.length}
+              </span>
+            </div>
             <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '12px' }}>
               Click on a username to see detailed reports
             </p>
@@ -494,9 +514,9 @@ export default function DatabaseReport() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUniqueCounts.map(({ username, count }) => (
-                  <>
-                    <tr key={username}>
+                {paginatedData.map(({ username, count }) => (
+                  <React.Fragment key={username}>
+                    <tr>
                       <td>
                         <span
                           onClick={() => handleUsernameClick(username)}
@@ -567,10 +587,51 @@ export default function DatabaseReport() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '12px',
+                marginTop: '16px',
+                alignItems: 'center'
+              }}>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    background: currentPage === 1 ? '#f3f4f6' : 'white',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Previous
+                </button>
+                <span style={{ fontSize: '14px', color: '#374151' }}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    background: currentPage === totalPages ? '#f3f4f6' : 'white',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
 
           <div style={{
