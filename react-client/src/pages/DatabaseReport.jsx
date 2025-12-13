@@ -129,16 +129,31 @@ export default function DatabaseReport() {
     }
   }
 
+  // Optimize: Memoize the base filtered list (date & apiName) separately
+  // This prevents re-running expensive date parsing/filtering when only visualization filters change (searchUsername, topN, etc)
+  const filteredReports = useMemo(() => {
+    let result = data;
+    if (filters.apiName) {
+        result = result.filter(item => item.apiName === filters.apiName)
+    }
+
+    // Optimize date filtering by creating dayjs objects once outside the loop
+    const startDate = filters.startDate ? dayjs(filters.startDate) : null
+    const endDate = filters.endDate ? dayjs(filters.endDate) : null
+
+    if (startDate || endDate) {
+        result = result.filter(item => {
+            const itemDate = dayjs(item.timestamp)
+            if (startDate && !itemDate.isSameOrAfter(startDate)) return false
+            if (endDate && !itemDate.isSameOrBefore(endDate)) return false
+            return true
+        })
+    }
+    return result
+  }, [data, filters.apiName, filters.startDate, filters.endDate])
+
   const filteredUniqueCounts = useMemo(() => {
     const userIdSet = {}
-    let filtered = data
-    if (filters.apiName) filtered = filtered.filter(item => item.apiName === filters.apiName)
-    if (filters.startDate) {
-      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrAfter(dayjs(filters.startDate)))
-    }
-    if (filters.endDate) {
-      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
-    }
 
     // Parse comma-separated usernames and UIDs for frontend filtering
     const usernameFilters = filters.searchUsername
@@ -149,36 +164,63 @@ export default function DatabaseReport() {
       ? filters.searchUid.split(',').map(u => u.trim()).filter(u => u)
       : []
 
-    filtered.forEach(item => {
-      (item.report || []).forEach(r => {
-        // Skip if username is null
-        if (!r.username) return
+    const hasUsernameFilters = usernameFilters.length > 0
+    const hasUidFilters = uidFilters.length > 0
 
-        // Frontend filtering: if searchUsername is set, only show matching usernames
-        if (usernameFilters.length > 0) {
-          const matchesFilter = usernameFilters.some(filter =>
-            r.username.toLowerCase().includes(filter)
-          )
-          if (!matchesFilter) return
+    // Optimize: Use for loops instead of forEach for better performance
+    const reportsLength = filteredReports.length
+    for (let i = 0; i < reportsLength; i++) {
+        const item = filteredReports[i]
+        const reports = item.report || []
+        const rLength = reports.length
+
+        for (let j = 0; j < rLength; j++) {
+            const r = reports[j]
+            // Skip if username is null
+            if (!r.username) continue
+
+            // Frontend filtering: if searchUsername is set, only show matching usernames
+            if (hasUsernameFilters) {
+              const rUsernameLower = r.username.toLowerCase()
+              let matchesFilter = false
+              for (let k = 0; k < usernameFilters.length; k++) {
+                  if (rUsernameLower.includes(usernameFilters[k])) {
+                      matchesFilter = true
+                      break
+                  }
+              }
+              if (!matchesFilter) continue
+            }
+
+            // Frontend filtering: if searchUid is set, only show matching UIDs
+            if (hasUidFilters && r.uid) {
+              let matchesFilter = false
+              for (let k = 0; k < uidFilters.length; k++) {
+                  if (r.uid.includes(uidFilters[k])) {
+                      matchesFilter = true
+                      break
+                  }
+              }
+              if (!matchesFilter) continue
+            }
+
+            if (!userIdSet[r.username]) userIdSet[r.username] = new Set()
+
+            if (Array.isArray(r.ids)) {
+                const ids = r.ids
+                const idsLength = ids.length
+                for (let k = 0; k < idsLength; k++) {
+                    userIdSet[r.username].add(ids[k])
+                }
+            }
         }
+    }
 
-        // Frontend filtering: if searchUid is set, only show matching UIDs
-        if (uidFilters.length > 0 && r.uid) {
-          const matchesFilter = uidFilters.some(filter =>
-            r.uid.includes(filter)
-          )
-          if (!matchesFilter) return
-        }
-
-        if (!userIdSet[r.username]) userIdSet[r.username] = new Set()
-        if (Array.isArray(r.ids)) r.ids.forEach(id => userIdSet[r.username].add(id))
-      })
-    })
     return Object.entries(userIdSet)
       .map(([username, set]) => ({ username, count: set.size }))
       .sort((a, b) => (filters.sortOrder === 'desc' ? b.count - a.count : a.count - b.count))
       .slice(0, filters.topN || 10)
-  }, [data, filters])
+  }, [filteredReports, filters.searchUsername, filters.searchUid, filters.sortOrder, filters.topN])
 
   // Reset to first page when data changes
   useEffect(() => {
@@ -193,27 +235,20 @@ export default function DatabaseReport() {
 
   const totalPages = Math.ceil(filteredUniqueCounts.length / ITEMS_PER_PAGE)
 
-  // Get detailed reports for a specific username
-  const getUserReports = (username) => {
-    let filtered = data
-    if (filters.apiName) filtered = filtered.filter(item => item.apiName === filters.apiName)
-    if (filters.startDate) {
-      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrAfter(dayjs(filters.startDate)))
-    }
-    if (filters.endDate) {
-      filtered = filtered.filter(item => dayjs(item.timestamp).isSameOrBefore(dayjs(filters.endDate)))
-    }
-
-    return filtered.flatMap(item =>
-      (item.report || [])
-        .filter(r => r.username === username)
-        .map(r => ({ ...r, timestamp: item.timestamp, apiName: item.apiName }))
-    )
-  }
-
   const handleUsernameClick = (username) => {
     setExpandedUsername(expandedUsername === username ? null : username)
   }
+
+  // Optimize: Memoize expanded user reports to prevent re-filtering on every render
+  const expandedUserReports = useMemo(() => {
+      if (!expandedUsername) return []
+
+      return filteredReports.flatMap(item =>
+        (item.report || [])
+          .filter(r => r.username === expandedUsername)
+          .map(r => ({ ...r, timestamp: item.timestamp, apiName: item.apiName }))
+      )
+  }, [filteredReports, expandedUsername])
 
   // Chart data - only show users with IDs (horizontal bar chart)
   const chartData = useMemo(() => {
@@ -564,7 +599,7 @@ export default function DatabaseReport() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {getUserReports(username).map((report, idx) => (
+                                  {expandedUserReports.map((report, idx) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
                                       <td style={{ padding: '8px' }}>{report.apiName}</td>
                                       <td style={{ padding: '8px', textAlign: 'center' }}>{report.total}</td>
