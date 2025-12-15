@@ -174,6 +174,10 @@ class Database {
             throw new Error(`User not found: ${usernameOrUid}`);
         }
 
+        await this.saveMediaForUser(user, mediaId);
+    }
+
+    async saveMediaForUser(user, mediaId) {
         await runAsync(this.db,
             'INSERT OR IGNORE INTO saved_media (user_id, media_id) VALUES (?, ?)',
             [user.id, mediaId]
@@ -329,13 +333,45 @@ class Database {
 
     async batchSaveMedia(items) {
         let saved = 0;
-        for (const item of items) {
-            try {
-                await this.saveMedia(item.username, item.mediaId, item.platform);
-                saved++;
-            } catch (err) {
-                console.warn(`⚠️ Failed to save media for ${item.username}: ${err.message}`);
+        const userCache = new Map();
+
+        try {
+            await runAsync(this.db, 'BEGIN TRANSACTION');
+
+            for (const item of items) {
+                try {
+                    let user;
+                    const usernameOrUid = item.username;
+                    const platform = item.platform;
+                    const cacheKey = platform ? `uid:${platform}:${usernameOrUid}` : `username:${usernameOrUid}`;
+
+                    if (userCache.has(cacheKey)) {
+                        user = userCache.get(cacheKey);
+                    } else {
+                        if (platform) {
+                            user = await this.getUserByUid(platform, usernameOrUid);
+                        } else {
+                            user = await this.getUserByUsername(usernameOrUid);
+                        }
+                        if (user) {
+                            userCache.set(cacheKey, user);
+                        }
+                    }
+
+                    if (!user) {
+                        throw new Error(`User not found: ${usernameOrUid}`);
+                    }
+
+                    await this.saveMediaForUser(user, item.mediaId);
+                    saved++;
+                } catch (err) {
+                    console.warn(`⚠️ Failed to save media for ${item.username}: ${err.message}`);
+                }
             }
+            await runAsync(this.db, 'COMMIT');
+        } catch (err) {
+            await runAsync(this.db, 'ROLLBACK');
+            throw err;
         }
         return saved;
     }
