@@ -19,14 +19,18 @@ export default function Compare() {
     })
   }
 
-  function parseFileContent(content, fileName) {
-    if (fileName.endsWith('.json')) {
+  function parseTitles(content) {
+    try {
       const parsed = JSON.parse(content)
-      return Array.isArray(parsed) ? parsed : [parsed]
-    } else if (fileName.endsWith('.jsonl')) {
-      return content.split('\n').filter(l => l.trim() !== '').map(l => JSON.parse(l))
+      if (parsed.relationships_following && Array.isArray(parsed.relationships_following)) {
+        return parsed.relationships_following
+          .map(item => item.title)
+          .filter(title => title)
+      }
+      return []
+    } catch (e) {
+      throw new Error('Invalid JSON format')
     }
-    throw new Error('Unsupported file format')
   }
 
   async function onCompare() {
@@ -37,23 +41,27 @@ export default function Compare() {
     try {
       const content1 = await readFileContent(file1)
       const content2 = await readFileContent(file2)
-      const parsed1 = parseFileContent(content1, file1.name)
-      const parsed2 = parseFileContent(content2, file2.name)
-      const out1 = []
-      const out2 = []
-      const max = Math.max(parsed1.length, parsed2.length)
-      for (let i = 0; i < max; i++) {
-        const a = parsed1[i] || null
-        const b = parsed2[i] || null
-        const sa = a ? JSON.stringify(a, null, 2) : null
-        const sb = b ? JSON.stringify(b, null, 2) : null
-        if (sa !== sb) {
-          if (sa !== null) out1.push(sa)
-          if (sb !== null) out2.push(sb)
-        }
-      }
-      setDiff1(out1)
-      setDiff2(out2)
+
+      const titles1 = parseTitles(content1)
+      const titles2 = parseTitles(content2)
+
+      const set1 = new Set(titles1)
+      const set2 = new Set(titles2)
+
+      const formatUrl = title => `https://www.instagram.com/${title}`
+
+      // Diff 1: Titles in File 1 that ALSO appear in File 2 (Intersection)
+      const common = titles1
+        .filter(title => set2.has(title))
+        .map(formatUrl)
+
+      // Diff 2: Titles in File 2 that DO NOT appear in File 1 (New in File 2)
+      const newIn2 = titles2
+        .filter(title => !set1.has(title))
+        .map(formatUrl)
+
+      setDiff1(common)
+      setDiff2(newIn2)
     } catch (e) {
       setError(`Đã xảy ra lỗi khi xử lý tệp: ${e.message}`)
     }
@@ -68,7 +76,13 @@ export default function Compare() {
         <button onClick={onCompare}>So sánh</button>
       </div>
       <ErrorBanner message={error} />
-      <div className="grid">
+      <div className="grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '20px',
+        alignItems: 'start',
+        marginTop: '20px'
+      }}>
         <DiffPane title="Khác biệt trong Tệp 1" diffs={diff1} />
         <DiffPane title="Khác biệt trong Tệp 2" diffs={diff2} />
       </div>
