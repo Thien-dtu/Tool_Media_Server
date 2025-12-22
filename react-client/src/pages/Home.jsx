@@ -6,6 +6,8 @@ import ProgressBars from '../components/common/ProgressBars.jsx'
 import ResultsGrid from '../components/home/ResultsGrid.jsx'
 import NearestLocationModal from '../components/common/NearestLocationModal.jsx'
 import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus, preFetchUsers } from '../lib/apiClient.js'
+import timeouts from '../config/timeouts.js'
+import { sleep, sleepWithCountdown, shuffleArray, getUsernameFromUrl } from '../utils/helpers.js'
 
 const defaultApiParams = {
   get_list_fb_user_photos: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', type: '5', cursor: '' }, null, 2),
@@ -13,40 +15,6 @@ const defaultApiParams = {
   get_list_fb_highlights: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', cursor: '' }, null, 2),
   get_list_ig_post: JSON.stringify({ url: 'https://www.instagram.com/chanz_sweet.052', cursor: '' }, null, 2),
   get_list_ig_user_stories: JSON.stringify({ url: 'https://www.instagram.com/chanz_sweet.052/', raw: '' }, null, 2),
-}
-
-function getUsernameFromUrl(url) {
-  if (!url) return 'unknown_user'
-  try {
-    const urlObj = new URL(url)
-    if (urlObj.hostname.includes('facebook.com')) {
-      const pathParts = urlObj.pathname.split('/').filter(Boolean)
-      if (pathParts.length > 0) {
-        if (pathParts[0] === 'profile.php' && urlObj.searchParams.has('id')) {
-          return urlObj.searchParams.get('id')
-        } else if (pathParts[0] !== 'photo.php' && pathParts[0] !== 'story.php') {
-          return pathParts[0]
-        }
-      }
-    } else if (urlObj.hostname.includes('instagram.com')) {
-      let path = urlObj.pathname.split('/').filter(Boolean)[0]
-      if (path && path.endsWith('/')) path = path.slice(0, -1)
-      return path
-    }
-  } catch {
-    // noop
-  }
-  return 'unknown_user'
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
-function shuffleArray(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 export default function Home() {
@@ -69,6 +37,7 @@ export default function Home() {
 
   const clientId = useMemo(() => (import.meta.env.VITE_CLIENT_ID), [])
   const urlLogRef = useRef([])
+  const stopRequested = useRef(false)
 
   // Flatten media list to include carousel items
   const flattenedMedia = useMemo(() => {
@@ -168,36 +137,82 @@ export default function Home() {
     let page = 0
     let params = { ...paramsBase }
     do {
+      if (stopRequested.current) {
+        pushStatus('⛔ Đã dừng theo yêu cầu người dùng')
+        break
+      }
+
       if (nextCursor) params.cursor = nextCursor
       else if (!params.cursor) params.cursor = ''
       page++
       pushStatus(`Đang tải trang ${page} từ URL: ${params.url}...`)
-      try {
-        const data = await callApi({ id: clientId, apiname: apiNameLocal, apiparams: params })
-        if (data.error) { 
-          const errorMsg = `Lỗi API cho URL ${params.url}: ${data.error}`
-          pushStatus(errorMsg)
-          setErrors(prev => [...prev, errorMsg])
-          break 
+
+      let retryCount = 0
+      const maxRetries = 5
+      let success = false
+
+      while (retryCount < maxRetries && !success) {
+        if (stopRequested.current) {
+          pushStatus('⛔ Đã dừng theo yêu cầu người dùng')
+          return { data: results, pagesLoaded: page }
         }
-        if (Array.isArray(data.result)) {
-          const username = getUsernameFromUrl(params.url)
-          results = results.concat(data.result.map(item => ({ ...item, originalUrl: params.url, username })))
-          let newCursor = null
-          if (data.result.length > 0) {
-            const last = data.result[data.result.length - 1]
-            if (last && last.cursor && last.cursor !== '' && last.cursor !== 'None') newCursor = last.cursor
+
+        try {
+          const data = await callApi({ id: clientId, apiname: apiNameLocal, apiparams: params })
+          if (data.error) {
+            // Check if it's the specific error that needs retry
+            if (data.error.includes('Server response error')) {
+              retryCount++
+              if (retryCount < maxRetries) {
+                pushStatus(`⚠️ Lỗi server, đang thử lại lần ${retryCount}/${maxRetries - 1}...`)
+                await sleepWithCountdown(15, (remaining) => {
+                  pushStatus(`⏳ Chờ ${remaining} giây trước khi thử lại...`)
+                })
+                continue // Retry
+              } else {
+                const errorMsg = `Lỗi API cho URL ${params.url}: ${data.error} (Đã thử ${maxRetries} lần, bỏ qua URL này)`
+                pushStatus(errorMsg)
+                setErrors(prev => [...prev, errorMsg])
+                return { data: results, pagesLoaded: page } // Skip this URL
+              }
+            } else {
+              // Other errors - don't retry
+              const errorMsg = `Lỗi API cho URL ${params.url}: ${data.error}`
+              pushStatus(errorMsg)
+              setErrors(prev => [...prev, errorMsg])
+              return { data: results, pagesLoaded: page }
+            }
           }
-          nextCursor = newCursor
-        } else {
-          nextCursor = null
+
+          if (Array.isArray(data.result)) {
+            const username = getUsernameFromUrl(params.url)
+            results = results.concat(data.result.map(item => ({ ...item, originalUrl: params.url, username })))
+            let newCursor = null
+            if (data.result.length > 0) {
+              const last = data.result[data.result.length - 1]
+              if (last && last.cursor && last.cursor !== '' && last.cursor !== 'None') newCursor = last.cursor
+            }
+            nextCursor = newCursor
+          } else {
+            nextCursor = null
+          }
+          success = true
+          if (nextCursor) await sleep(timeouts.betweenPages.get())
+        } catch (e) {
+          retryCount++
+          if (retryCount < maxRetries) {
+            pushStatus(`⚠️ Lỗi kết nối, đang thử lại lần ${retryCount}/${maxRetries - 1}...`)
+            await sleepWithCountdown(15, (remaining) => {
+              pushStatus(`⏳ Chờ ${remaining} giây trước khi thử lại...`)
+            })
+          } else {
+            const errorMsg = `Lỗi Fetch cho URL ${params.url}: ${e.message} (Đã thử ${maxRetries} lần, bỏ qua URL này)`
+            pushStatus(errorMsg)
+            setErrors(prev => [...prev, errorMsg])
+            nextCursor = null
+            success = true // Exit retry loop
+          }
         }
-        if (nextCursor) await sleep(500)
-      } catch (e) {
-        const errorMsg = `Lỗi Fetch cho URL ${params.url}: ${e.message}`
-        pushStatus(errorMsg)
-        setErrors(prev => [...prev, errorMsg])
-        nextCursor = null
       }
     } while (nextCursor)
     return { data: results, pagesLoaded: page }
@@ -206,6 +221,7 @@ export default function Home() {
   async function onMakeApiCall() {
     if (isFetching) return
     setIsFetching(true)
+    stopRequested.current = false // Reset stop flag
     // await refreshSavedSet()
     setAllResults([])
     setMultiReportHtml('')
@@ -235,6 +251,11 @@ export default function Home() {
     if (shuffledUrlList.length > 1) { try { await saveShuffledUrls({ apiName, urls: shuffledUrlList, timestamp: new Date().toISOString() }) } catch {} }
 
     for (let i = 0; i < shuffledUrlList.length; i++) {
+      if (stopRequested.current) {
+        setStatus('⛔ Đã dừng theo yêu cầu người dùng', true)
+        break
+      }
+
       const url = shuffledUrlList[i]
       const username = getUsernameFromUrl(url)
       const statusPrefix = `URL ${i + 1}/${shuffledUrlList.length}`
@@ -329,7 +350,13 @@ export default function Home() {
       urlLogRef.current.push(`${statusPrefix} hoàn thành: Tổng ${totalItemsForUrl}, Đã tải ${haveItemsForUrl}, Trang ${pagesLoaded}, Thời gian ${durationUrlStr}`)
       setMultiReportHtml(`<h3>Kết quả tổng hợp:</h3>${report.map(r => `<div style="margin-bottom:10px;"><b>URL:</b> <a href="${r.url}" target="_blank">${r.url}</a><br><b>User:</b> ${r.username || 'N/A'}<br><b>Tổng:</b> ${r.total}, <b>Đã tải:</b> ${r.have}, <b>Chưa tải:</b> ${r.nohave}<br><b>Trang:</b> ${r.pages}, <b>Thời gian:</b> ${r.time}</div>`).join('')}`)
 
-      if (i < shuffledUrlList.length - 1) { setStatus(`Đã hoàn thành ${i + 1}/${shuffledUrlList.length}. Đang chờ 1 giây...`); await sleep(1000) }
+      if (i < shuffledUrlList.length - 1) {
+        const waitTime = timeouts.betweenUrls.get()
+        const waitSeconds = Math.round(waitTime / 1000)
+        await sleepWithCountdown(waitSeconds, (remaining) => {
+          setStatus(`Đã hoàn thành ${i + 1}/${shuffledUrlList.length}. Đang chờ ${remaining} giây...`)
+        })
+      }
     }
 
     const durationStr = new Date(Date.now() - startTime).toISOString().substr(11, 8)
@@ -429,8 +456,8 @@ export default function Home() {
         <ApiParamsEditor value={apiParamsStr} onChange={setApiParamsStr} />
         
         {(apiName === 'get_list_fb_user_photos' || apiName === 'get_list_ig_post') && (
-          <div className="cursor-options" style={{ margin: '12px 0', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-            <div style={{ marginBottom: '8px', fontWeight: '600', color: '#374151' }}>Cursor Options:</div>
+          <div className="cursor-options" style={{ margin: '12px 0', padding: '12px', background: 'var(--option-bg)', borderRadius: '8px', border: '1px solid var(--option-border)' }}>
+            <div style={{ marginBottom: '8px', fontWeight: '600', color: 'var(--option-text)' }}>Cursor Options:</div>
             <label style={{ display: 'flex', alignItems: 'center', marginBottom: '6px', cursor: 'pointer' }}>
               <input 
                 type="checkbox" 
@@ -450,7 +477,7 @@ export default function Home() {
               Get from nearest location (use saved cursor)
             </label>
             {!startFromBeginning && !getFromNearest && (
-              <div style={{ marginTop: '8px', fontSize: '14px', color: '#6b7280' }}>
+              <div style={{ marginTop: '8px', fontSize: '14px', color: 'var(--option-muted)' }}>
                 No option selected - will show modal for each URL
               </div>
             )}
@@ -459,16 +486,27 @@ export default function Home() {
 
         <div className="actions">
           <button onClick={onMakeApiCall} disabled={isFetching}>Make API Call</button>
+          {isFetching && (
+            <button
+              onClick={() => {
+                stopRequested.current = true
+                setStatus('⏹️ Đang dừng...', false)
+              }}
+              style={{ marginLeft: 12, background: '#dc3545', color: 'white' }}
+            >
+              Stop
+            </button>
+          )}
           <button onClick={onDownloadAll} disabled={isDownloading || results.length === 0} style={{ marginLeft: 12 }}>Tải về tất cả</button>
         </div>
       </div>
 
       <StatusBanner message={overallMsg} />
       {errors.length > 0 && (
-        <div className="errors" style={{ marginTop: '12px', padding: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px' }}>
-          <h3 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>Lỗi ({errors.length}):</h3>
+        <div className="errors" style={{ marginTop: '12px', padding: '12px', background: 'var(--error-bg)', border: '1px solid var(--error-text)', borderRadius: '8px' }}>
+          <h3 style={{ margin: '0 0 8px 0', color: 'var(--error-text)' }}>Lỗi ({errors.length}):</h3>
           {errors.map((error, idx) => (
-            <div key={idx} style={{ marginBottom: '4px', color: '#dc2626', fontSize: '14px' }}>{error}</div>
+            <div key={idx} style={{ marginBottom: '4px', color: 'var(--error-text)', fontSize: '14px' }}>{error}</div>
           ))}
         </div>
       )}

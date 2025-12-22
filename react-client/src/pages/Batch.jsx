@@ -6,6 +6,8 @@ import ProgressBars from '../components/common/ProgressBars.jsx'
 import CountDisplay from '../components/batch/CountDisplay.jsx'
 import NearestLocationModal from '../components/common/NearestLocationModal.jsx'
 import { apiBase, callApi, getSavedList, saveShuffledUrls, getLastCursors, saveLastCursor, saveReport, downloadItems, checkSavedStatus, preFetchUsers, getBatchProgress, saveBatchProgress, clearBatchProgress } from '../lib/apiClient.js'
+import timeouts from '../config/timeouts.js'
+import { sleep, sleepWithCountdown, shuffleArray, getUsernameFromUrl } from '../utils/helpers.js'
 
 const defaultApiParams = {
   get_list_fb_user_photos: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', type: '5', cursor: '' }, null, 2),
@@ -13,40 +15,6 @@ const defaultApiParams = {
   get_list_fb_highlights: JSON.stringify({ url: 'https://www.facebook.com/trang.quach.526875', cursor: '' }, null, 2),
   get_list_ig_post: JSON.stringify({ url: 'https://www.instagram.com/chanz_sweet.052', cursor: '' }, null, 2),
   get_list_ig_user_stories: JSON.stringify({ url: 'https://www.instagram.com/chanz_sweet.052/', raw: '' }, null, 2),
-}
-
-function getUsernameFromUrl(url) {
-  if (!url) return 'unknown_user'
-  try {
-    const urlObj = new URL(url)
-    if (urlObj.hostname.includes('facebook.com')) {
-      const pathParts = urlObj.pathname.split('/').filter(Boolean)
-      if (pathParts.length > 0) {
-        if (pathParts[0] === 'profile.php' && urlObj.searchParams.has('id')) {
-          return urlObj.searchParams.get('id')
-        } else if (pathParts[0] !== 'photo.php' && pathParts[0] !== 'story.php') {
-          return pathParts[0]
-        }
-      }
-    } else if (urlObj.hostname.includes('instagram.com')) {
-      let path = urlObj.pathname.split('/').filter(Boolean)[0]
-      if (path && path.endsWith('/')) path = path.slice(0, -1)
-      return path
-    }
-  } catch {
-    // noop
-  }
-  return 'unknown_user'
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
-function shuffleArray(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 export default function Batch() {
@@ -70,6 +38,7 @@ export default function Batch() {
 
   const clientId = useMemo(() => (import.meta.env.VITE_CLIENT_ID), [])
   const urlLogRef = useRef([])
+  const stopRequested = useRef(false)
 
   // Load last batch progress on mount
   useEffect(() => {
@@ -117,36 +86,82 @@ export default function Batch() {
     let page = 0
     let params = { ...paramsBase }
     do {
+      if (stopRequested.current) {
+        pushStatus('⛔ Đã dừng theo yêu cầu người dùng')
+        break
+      }
+
       if (nextCursor) params.cursor = nextCursor
       else if (!params.cursor) params.cursor = ''
       page++
       pushStatus(`Đang tải trang ${page} từ URL: ${params.url}...`)
-      try {
-        const data = await callApi({ id: clientId, apiname: apiNameLocal, apiparams: params })
-        if (data.error) { 
-          const errorMsg = `Lỗi API cho URL ${params.url}: ${data.error}`
-          pushStatus(errorMsg)
-          setErrors(prev => [...prev, errorMsg])
-          break 
+
+      let retryCount = 0
+      const maxRetries = 5
+      let success = false
+
+      while (retryCount < maxRetries && !success) {
+        if (stopRequested.current) {
+          pushStatus('⛔ Đã dừng theo yêu cầu người dùng')
+          return { data: results, pagesLoaded: page }
         }
-        if (Array.isArray(data.result)) {
-          const username = getUsernameFromUrl(params.url)
-          results = results.concat(data.result.map(item => ({ ...item, originalUrl: params.url, username })))
-          let newCursor = null
-          if (data.result.length > 0) {
-            const last = data.result[data.result.length - 1]
-            if (last && last.cursor && last.cursor !== '' && last.cursor !== 'None') newCursor = last.cursor
+
+        try {
+          const data = await callApi({ id: clientId, apiname: apiNameLocal, apiparams: params })
+          if (data.error) {
+            // Check if it's the specific error that needs retry
+            if (data.error.includes('Server response error')) {
+              retryCount++
+              if (retryCount < maxRetries) {
+                pushStatus(`⚠️ Lỗi server, đang thử lại lần ${retryCount}/${maxRetries - 1}...`)
+                await sleepWithCountdown(15, (remaining) => {
+                  pushStatus(`⏳ Chờ ${remaining} giây trước khi thử lại...`)
+                })
+                continue // Retry
+              } else {
+                const errorMsg = `Lỗi API cho URL ${params.url}: ${data.error} (Đã thử ${maxRetries} lần, bỏ qua URL này)`
+                pushStatus(errorMsg)
+                setErrors(prev => [...prev, errorMsg])
+                return { data: results, pagesLoaded: page } // Skip this URL
+              }
+            } else {
+              // Other errors - don't retry
+              const errorMsg = `Lỗi API cho URL ${params.url}: ${data.error}`
+              pushStatus(errorMsg)
+              setErrors(prev => [...prev, errorMsg])
+              return { data: results, pagesLoaded: page }
+            }
           }
-          nextCursor = newCursor
-        } else {
-          nextCursor = null
+
+          if (Array.isArray(data.result)) {
+            const username = getUsernameFromUrl(params.url)
+            results = results.concat(data.result.map(item => ({ ...item, originalUrl: params.url, username })))
+            let newCursor = null
+            if (data.result.length > 0) {
+              const last = data.result[data.result.length - 1]
+              if (last && last.cursor && last.cursor !== '' && last.cursor !== 'None') newCursor = last.cursor
+            }
+            nextCursor = newCursor
+          } else {
+            nextCursor = null
+          }
+          success = true
+          if (nextCursor) await sleep(timeouts.betweenPages.get())
+        } catch (e) {
+          retryCount++
+          if (retryCount < maxRetries) {
+            pushStatus(`⚠️ Lỗi kết nối, đang thử lại lần ${retryCount}/${maxRetries - 1}...`)
+            await sleepWithCountdown(15, (remaining) => {
+              pushStatus(`⏳ Chờ ${remaining} giây trước khi thử lại...`)
+            })
+          } else {
+            const errorMsg = `Lỗi Fetch cho URL ${params.url}: ${e.message} (Đã thử ${maxRetries} lần, bỏ qua URL này)`
+            pushStatus(errorMsg)
+            setErrors(prev => [...prev, errorMsg])
+            nextCursor = null
+            success = true // Exit retry loop
+          }
         }
-        if (nextCursor) await sleep(500)
-      } catch (e) {
-        const errorMsg = `Lỗi Fetch cho URL ${params.url}: ${e.message}`
-        pushStatus(errorMsg)
-        setErrors(prev => [...prev, errorMsg])
-        nextCursor = null
       }
     } while (nextCursor)
     return { data: results, pagesLoaded: page }
@@ -204,6 +219,7 @@ export default function Batch() {
   async function onMakeApiCall() {
     if (isFetching) return
     setIsFetching(true)
+    stopRequested.current = false // Reset stop flag
     // await refreshSavedSet()
     setAllResults([])
 
@@ -262,6 +278,11 @@ export default function Batch() {
     })
 
     for (let i = 0; i < shuffledUrlList.length; i++) {
+      if (stopRequested.current) {
+        setStatus('⛔ Đã dừng theo yêu cầu người dùng', true)
+        break
+      }
+
       const url = shuffledUrlList[i]
       const username = getUsernameFromUrl(url)
       const statusPrefix = `URL ${i + 1}/${shuffledUrlList.length}`
@@ -380,7 +401,13 @@ export default function Batch() {
         console.error('Failed to save batch progress:', err)
       }
 
-      if (i < shuffledUrlList.length - 1) { setStatus(`Đã hoàn thành ${i + 1}/${shuffledUrlList.length}. Đang chờ 1 giây...`); await sleep(1000) }
+      if (i < shuffledUrlList.length - 1) {
+        const waitTime = timeouts.betweenUrls.get()
+        const waitSeconds = Math.round(waitTime / 1000)
+        await sleepWithCountdown(waitSeconds, (remaining) => {
+          setStatus(`Đã hoàn thành ${i + 1}/${shuffledUrlList.length}. Đang chờ ${remaining} giây...`)
+        })
+      }
     }
 
     const durationStr = new Date(Date.now() - startTime).toISOString().substr(11, 8)
@@ -455,8 +482,8 @@ export default function Batch() {
         <ApiParamsEditor value={apiParamsStr} onChange={setApiParamsStr} />
         
         {(apiName === 'get_list_fb_user_photos' || apiName === 'get_list_ig_post') && (
-          <div className="cursor-options" style={{ margin: '12px 0', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-            <div style={{ marginBottom: '8px', fontWeight: '600', color: '#374151' }}>Cursor Options:</div>
+          <div className="cursor-options" style={{ margin: '12px 0', padding: '12px', background: 'var(--option-bg)', borderRadius: '8px', border: '1px solid var(--option-border)' }}>
+            <div style={{ marginBottom: '8px', fontWeight: '600', color: 'var(--option-text)' }}>Cursor Options:</div>
             <label style={{ display: 'flex', alignItems: 'center', marginBottom: '6px', cursor: 'pointer' }}>
               <input 
                 type="checkbox" 
@@ -476,14 +503,14 @@ export default function Batch() {
               Get from nearest location (use saved cursor)
             </label>
             {!startFromBeginning && !getFromNearest && (
-              <div style={{ marginTop: '8px', fontSize: '14px', color: '#6b7280' }}>
+              <div style={{ marginTop: '8px', fontSize: '14px', color: 'var(--option-muted)' }}>
                 No option selected - will show modal for each URL
               </div>
             )}
           </div>
         )}
 
-        <div className="auto-download-option" style={{ margin: '12px 0', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+        <div className="auto-download-option" style={{ margin: '12px 0', padding: '12px', background: 'var(--success-option-bg)', borderRadius: '8px', border: '1px solid var(--success-option-border)' }}>
           <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -491,19 +518,19 @@ export default function Batch() {
               onChange={(e) => setAutoDownload(e.target.checked)}
               style={{ marginRight: '8px' }}
             />
-            <span style={{ fontWeight: '600', color: '#166534' }}>Automatically download after fetching each URL</span>
+            <span style={{ fontWeight: '600', color: 'var(--success-option-text)' }}>Automatically download after fetching each URL</span>
           </label>
-          <div style={{ marginTop: '6px', fontSize: '14px', color: '#15803d' }}>
+          <div style={{ marginTop: '6px', fontSize: '14px', color: 'var(--success-option-text)' }}>
             When enabled, media will be downloaded immediately after each URL is processed (no need to click "Tải về tất cả")
           </div>
         </div>
 
         {lastBatchProgress && (
-          <div className="recovery-status" style={{ margin: '12px 0', padding: '12px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fbbf24' }}>
-            <div style={{ marginBottom: '8px', fontWeight: '600', color: '#92400e' }}>
+          <div className="recovery-status" style={{ margin: '12px 0', padding: '12px', background: 'var(--warning-bg)', borderRadius: '8px', border: '1px solid var(--warning-border)' }}>
+            <div style={{ marginBottom: '8px', fontWeight: '600', color: 'var(--warning-text)' }}>
               ⚠️ Phát hiện batch chưa hoàn thành
             </div>
-            <div style={{ fontSize: '14px', color: '#78350f', marginBottom: '8px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--warning-text)', marginBottom: '8px' }}>
               <div>API: <strong>{lastBatchProgress.apiName}</strong></div>
               <div>Tổng số URL: <strong>{lastBatchProgress.totalUrls}</strong></div>
               <div>Đã hoàn thành: <strong>{lastBatchProgress.completedUrls?.length || 0}</strong> URL</div>
@@ -517,7 +544,7 @@ export default function Batch() {
                 onChange={(e) => setResumeFromLast(e.target.checked)}
                 style={{ marginRight: '8px' }}
               />
-              <span style={{ fontWeight: '600', color: '#92400e' }}>Resume from last run (skip completed URLs)</span>
+              <span style={{ fontWeight: '600', color: 'var(--warning-text)' }}>Resume from last run (skip completed URLs)</span>
             </label>
             <button
               onClick={async () => {
@@ -526,7 +553,7 @@ export default function Batch() {
                 setResumeFromLast(false)
                 setStatus('🗑️ Đã xóa tiến trình cũ')
               }}
-              style={{ marginTop: '8px', padding: '6px 12px', fontSize: '13px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              style={{ marginTop: '8px', padding: '6px 12px', fontSize: '13px', background: 'var(--danger-bg)', color: 'var(--danger-text)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             >
               Xóa tiến trình cũ
             </button>
@@ -535,16 +562,27 @@ export default function Batch() {
 
         <div className="actions">
           <button onClick={onMakeApiCall} disabled={isFetching}>Make API Call</button>
+          {isFetching && (
+            <button
+              onClick={() => {
+                stopRequested.current = true
+                setStatus('⏹️ Đang dừng...', false)
+              }}
+              style={{ marginLeft: 12, background: '#dc3545', color: 'white' }}
+            >
+              Stop
+            </button>
+          )}
           <button onClick={onDownloadAll} disabled={isDownloading || results.length === 0} style={{ marginLeft: 12 }}>Tải về tất cả</button>
         </div>
       </div>
 
       <StatusBanner message={overallMsg} />
       {errors.length > 0 && (
-        <div className="errors" style={{ marginTop: '12px', padding: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px' }}>
-          <h3 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>Lỗi ({errors.length}):</h3>
+        <div className="errors" style={{ marginTop: '12px', padding: '12px', background: 'var(--error-bg)', border: '1px solid var(--error-text)', borderRadius: '8px' }}>
+          <h3 style={{ margin: '0 0 8px 0', color: 'var(--error-text)' }}>Lỗi ({errors.length}):</h3>
           {errors.map((error, idx) => (
-            <div key={idx} style={{ marginBottom: '4px', color: '#dc2626', fontSize: '14px' }}>{error}</div>
+            <div key={idx} style={{ marginBottom: '4px', color: 'var(--error-text)', fontSize: '14px' }}>{error}</div>
           ))}
         </div>
       )}

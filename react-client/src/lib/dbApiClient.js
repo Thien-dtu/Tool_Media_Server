@@ -161,6 +161,22 @@ export async function getUserMedia(username, limit = 50) {
 }
 
 /**
+ * Get username change history for user
+ * @param {string} username - Username to get history for
+ * @param {number} limit - Number of history entries to return (default: 10)
+ * @returns {Promise<{history: Array, count: number}>}
+ */
+export async function getUsernameHistory(username, limit = 10) {
+  const res = await fetch(
+    `${API_BASE}/api/db/users/${encodeURIComponent(username)}/history?limit=${limit}`
+  )
+  if (!res.ok) {
+    throw new Error(`Failed to fetch username history: ${res.statusText}`)
+  }
+  return res.json()
+}
+
+/**
  * Search users by username pattern
  * @param {Object} payload - Search payload
  * @param {string} payload.pattern - Search pattern (uses SQL LIKE)

@@ -111,3 +111,57 @@ export async function clearBatchProgress() {
 
 export function apiBase() { return API_BASE }
 
+/**
+ * Get user information by username (includes UID)
+ * @param {string} username - Username to query
+ * @returns {Promise<{user: {uid: string, username: string, platform_name: string, ...}}>}
+ */
+export async function getUserInfo(username) {
+  const res = await fetch(`${API_BASE}/api/db/users/${username}`)
+  if (!res.ok) {
+    if (res.status === 404) {
+      return { user: null }
+    }
+    throw new Error('Failed to fetch user info')
+  }
+  return res.json()
+}
+
+/**
+ * Get media counts for multiple usernames
+ * @param {string[]} usernames - Array of usernames
+ * @returns {Promise<{mediaCounts: {[username: string]: number}}>}
+ */
+export async function getMediaCounts(usernames) {
+  const res = await fetch(`${API_BASE}/api/db/users/media-counts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usernames })
+  })
+  if (!res.ok) {
+    throw new Error('Failed to fetch media counts')
+  }
+  return res.json()
+}
+
+/**
+ * Get user enriched data (UID, cursor info, and media count)
+ * @param {string} username - Username to query
+ * @param {string[]} apiNames - Array of API names to get cursor data for (e.g., ['get_list_fb_user_photos', 'get_list_ig_post'])
+ * @returns {Promise<{user: object, cursors: object, mediaCount: number}>}
+ */
+export async function getUserEnrichedData(username, apiNames = []) {
+  const userInfoPromise = getUserInfo(username)
+  const cursorsPromise = apiNames.length > 0
+    ? getLastCursors({ apiName: apiNames[0], usernames: [username] })
+    : Promise.resolve({ lastCursors: {} })
+
+  const [userInfo, cursorsData] = await Promise.all([userInfoPromise, cursorsPromise])
+
+  return {
+    user: userInfo.user,
+    cursors: cursorsData.lastCursors?.[username] || null,
+    mediaCount: null // Will be fetched in bulk
+  }
+}
+

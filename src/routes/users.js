@@ -34,72 +34,6 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
- * GET /api/db/users/:username
- * Get user by username
- */
-router.get('/:username', async (req, res) => {
-    const { username } = req.params;
-
-    const db = getDatabase();
-    let dbWasConnected = db.db !== null;
-
-    try {
-        if (!dbWasConnected) {
-            await db.connect();
-        }
-
-        const user = await db.getUserByUsername(username);
-
-        if (!dbWasConnected) db.close();
-
-        if (user) {
-            res.json({ user });
-        } else {
-            res.status(404).json({ error: 'User not found' });
-        }
-    } catch (err) {
-        console.error('Error fetching user:', err.message);
-        if (!dbWasConnected && db.db) db.close();
-        res.status(500).json({ error: 'Failed to fetch user', message: err.message });
-    }
-});
-
-/**
- * GET /api/db/users/:platform/:uid
- * Get user by platform and UID
- */
-router.get('/:platform/:uid', async (req, res) => {
-    const { platform, uid } = req.params;
-
-    if (!['facebook', 'instagram'].includes(platform)) {
-        return res.status(400).json({ error: 'Invalid platform. Must be facebook or instagram' });
-    }
-
-    const db = getDatabase();
-    let dbWasConnected = db.db !== null;
-
-    try {
-        if (!dbWasConnected) {
-            await db.connect();
-        }
-
-        const user = await db.getUserByUid(platform, uid);
-
-        if (!dbWasConnected) db.close();
-
-        if (user) {
-            res.json({ user });
-        } else {
-            res.status(404).json({ error: 'User not found' });
-        }
-    } catch (err) {
-        console.error('Error fetching user by UID:', err.message);
-        if (!dbWasConnected && db.db) db.close();
-        res.status(500).json({ error: 'Failed to fetch user', message: err.message });
-    }
-});
-
-/**
  * POST /api/db/users/fetch
  * Auto-fetch user with UID from API
  * Body: { url, platform?, clientId }
@@ -162,6 +96,38 @@ router.post('/bulk-fetch', async (req, res) => {
 });
 
 /**
+ * GET /api/db/users/:username/history
+ * Get username change history for user
+ * Query params: ?limit=10
+ */
+router.get('/:username/history', async (req, res) => {
+    const { username } = req.params;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const db = getDatabase();
+    let dbWasConnected = db.db !== null;
+
+    try {
+        if (!dbWasConnected) {
+            await db.connect();
+        }
+
+        const history = await db.getUsernameHistory(username, null, limit);
+
+        if (!dbWasConnected) db.close();
+
+        res.json({
+            history,
+            count: history.length
+        });
+    } catch (err) {
+        console.error('Error fetching username history:', err.message);
+        if (!dbWasConnected && db.db) db.close();
+        res.status(500).json({ error: 'Failed to fetch username history', message: err.message });
+    }
+});
+
+/**
  * GET /api/db/users/:username/media
  * Get saved media for user
  * Query params: ?limit=50
@@ -194,6 +160,38 @@ router.get('/:username/media', async (req, res) => {
         console.error('Error fetching user media:', err.message);
         if (!dbWasConnected && db.db) db.close();
         res.status(500).json({ error: 'Failed to fetch user media', message: err.message });
+    }
+});
+
+/**
+ * POST /api/db/users/media-counts
+ * Get media counts for multiple usernames
+ * Body: { usernames: string[] }
+ */
+router.post('/media-counts', async (req, res) => {
+    const { usernames } = req.body;
+
+    if (!Array.isArray(usernames)) {
+        return res.status(400).json({ error: 'Missing or invalid usernames array' });
+    }
+
+    const db = getDatabase();
+    let dbWasConnected = db.db !== null;
+
+    try {
+        if (!dbWasConnected) {
+            await db.connect();
+        }
+
+        const mediaCounts = await db.getMediaCountsByUsernames(usernames);
+
+        if (!dbWasConnected) db.close();
+
+        res.json({ mediaCounts });
+    } catch (err) {
+        console.error('Error fetching media counts:', err.message);
+        if (!dbWasConnected && db.db) db.close();
+        res.status(500).json({ error: 'Failed to fetch media counts', message: err.message });
     }
 });
 
@@ -240,6 +238,74 @@ router.post('/search', async (req, res) => {
         console.error('Error searching users:', err.message);
         if (!dbWasConnected && db.db) db.close();
         res.status(500).json({ error: 'Failed to search users', message: err.message });
+    }
+});
+
+/**
+ * GET /api/db/users/:username
+ * Get user by username
+ * NOTE: This must come AFTER more specific routes like /:username/history
+ */
+router.get('/:username', async (req, res) => {
+    const { username } = req.params;
+
+    const db = getDatabase();
+    let dbWasConnected = db.db !== null;
+
+    try {
+        if (!dbWasConnected) {
+            await db.connect();
+        }
+
+        const user = await db.getUserByUsername(username);
+
+        if (!dbWasConnected) db.close();
+
+        if (user) {
+            res.json({ user });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (err) {
+        console.error('Error fetching user:', err.message);
+        if (!dbWasConnected && db.db) db.close();
+        res.status(500).json({ error: 'Failed to fetch user', message: err.message });
+    }
+});
+
+/**
+ * GET /api/db/users/:platform/:uid
+ * Get user by platform and UID
+ * NOTE: This must come AFTER more specific routes
+ */
+router.get('/:platform/:uid', async (req, res) => {
+    const { platform, uid } = req.params;
+
+    if (!['facebook', 'instagram'].includes(platform)) {
+        return res.status(400).json({ error: 'Invalid platform. Must be facebook or instagram' });
+    }
+
+    const db = getDatabase();
+    let dbWasConnected = db.db !== null;
+
+    try {
+        if (!dbWasConnected) {
+            await db.connect();
+        }
+
+        const user = await db.getUserByUid(platform, uid);
+
+        if (!dbWasConnected) db.close();
+
+        if (user) {
+            res.json({ user });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (err) {
+        console.error('Error fetching user by UID:', err.message);
+        if (!dbWasConnected && db.db) db.close();
+        res.status(500).json({ error: 'Failed to fetch user', message: err.message });
     }
 });
 

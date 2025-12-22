@@ -18,6 +18,17 @@ export default function ReportFilters({ filters, uniqueApis, onChange, onReset }
         <label>UID <input type="text" placeholder="Enter UIDs (comma-separated)" value={filters.searchUid || ''} onChange={e => onChange({ searchUid: e.target.value })} /></label>
       </div>
       <div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={filters.hasNameChanges || false}
+            onChange={e => onChange({ hasNameChanges: e.target.checked })}
+            style={{ cursor: 'pointer' }}
+          />
+          <span>Show only users with name changes</span>
+        </label>
+      </div>
+      <div>
         <label>Top N <input type="number" min={1} value={filters.topN} onChange={e => onChange({ topN: parseInt(e.target.value) || 10 })} /></label>
       </div>
       <div>

@@ -1,6 +1,7 @@
 import { Outlet, Link, NavLink } from 'react-router-dom'
 import { useState } from 'react'
 import './App.css'
+import ThemeToggle from './components/common/ThemeToggle.jsx'
 
 export default function App() {
   const [showReportsDropdown, setShowReportsDropdown] = useState(false)
@@ -60,6 +61,7 @@ export default function App() {
         <NavLink to="/following" className={({ isActive }) => isActive ? 'active' : ''}>Following</NavLink>
         <NavLink to="/following-urls" className={({ isActive }) => isActive ? 'active' : ''}>Following URLs</NavLink>
         <NavLink to="/platform-urls" className={({ isActive }) => isActive ? 'active' : ''}>Platform URLs</NavLink>
+        <ThemeToggle />
       </nav>
       <main className="content">
         <Outlet />

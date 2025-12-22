@@ -21,15 +21,15 @@
 }
 
 .nav-dropdown-trigger:hover {
-  background: #f3f4f6;
+  background: var(--hover-bg);
 }
 
 .nav-dropdown-menu {
   position: absolute;
   top: 100%;
   left: 0;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--dropdown-border);
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
   min-width: 220px;
@@ -50,13 +50,13 @@
 }
 
 .nav-dropdown-menu a:hover {
-  background: #f3f4f6;
+  background: var(--hover-bg);
 }
 
 .nav-dropdown-menu a.active {
   font-weight: 600;
   color: var(--primary);
-  background: #eaf0ff;
+  background: var(--nav-active-bg);
 }
 
 .logo {

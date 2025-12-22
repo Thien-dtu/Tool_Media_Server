@@ -86,10 +86,10 @@ router.get('/stats', async (req, res) => {
 /**
  * POST /api/db/reports/query
  * Custom report query with filters
- * Body: { apiName, usernames, uids, startDate, endDate, limit }
+ * Body: { apiName, usernames, uids, startDate, endDate, limit, hasNameChanges }
  */
 router.post('/query', async (req, res) => {
-    const { apiName, usernames, uids, startDate, endDate, limit } = req.body;
+    const { apiName, usernames, uids, startDate, endDate, limit, hasNameChanges } = req.body;
 
     const db = getDatabase();
     let dbWasConnected = db.db !== null;
@@ -149,6 +149,15 @@ router.post('/query', async (req, res) => {
         if (startDate && endDate) {
             query += ` AND ar.timestamp BETWEEN ? AND ?`;
             params.push(startDate, endDate);
+        }
+
+        if (hasNameChanges === true) {
+            query += ` AND u.id IN (
+                SELECT user_id
+                FROM username_history
+                GROUP BY user_id
+                HAVING COUNT(*) > 1
+            )`;
         }
 
         query += ` ORDER BY ar.timestamp DESC`;

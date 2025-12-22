@@ -346,9 +346,66 @@ class Database {
         );
     }
 
+    async getMediaCountsByUsernames(usernames) {
+        if (!usernames || usernames.length === 0) return {};
+
+        const placeholders = usernames.map(() => '?').join(',');
+        const rows = await allAsync(this.db,
+            `SELECT uh.username, COUNT(sm.id) as media_count
+             FROM username_history uh
+             JOIN users u ON uh.user_id = u.id
+             LEFT JOIN saved_media sm ON u.id = sm.user_id
+             WHERE uh.is_current = 1 AND uh.username IN (${placeholders})
+             GROUP BY uh.username`,
+            usernames
+        );
+
+        const result = {};
+        rows.forEach(row => {
+            result[row.username] = row.media_count;
+        });
+        return result;
+    }
+
     async getApiPerformance() {
         return await allAsync(this.db,
             'SELECT * FROM v_api_performance'
+        );
+    }
+
+    async getUsernameHistory(usernameOrUid, platform = null, limit = 10) {
+        let user;
+        if (platform) {
+            user = await this.getUserByUid(platform, usernameOrUid);
+        } else {
+            user = await this.getUserByUsername(usernameOrUid);
+        }
+
+        if (!user) return [];
+
+        return await allAsync(this.db,
+            `SELECT username, profile_url, changed_at, is_current
+             FROM username_history
+             WHERE user_id = ?
+             ORDER BY changed_at DESC
+             LIMIT ?`,
+            [user.id, limit]
+        );
+    }
+
+    async getUsersWithNameChanges() {
+        return await allAsync(this.db,
+            `SELECT DISTINCT u.id, u.uid, uh.username, p.platform_name
+             FROM users u
+             JOIN username_history uh ON u.id = uh.user_id AND uh.is_current = 1
+             JOIN platforms p ON u.platform_id = p.platform_id
+             WHERE u.id IN (
+                 SELECT user_id
+                 FROM username_history
+                 GROUP BY user_id
+                 HAVING COUNT(*) > 1
+             )
+             ORDER BY uh.username`
         );
     }
 

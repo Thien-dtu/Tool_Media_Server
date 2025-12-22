@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import LoadingFallback from './components/common/LoadingFallback.jsx'
+import { ThemeProvider } from './contexts/ThemeContext.jsx'
 
 import {
   Chart as ChartJS,
@@ -104,6 +105,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')).render(
   // <StrictMode>
-    <RouterProvider router={router} />
+    <ThemeProvider>
+      <RouterProvider router={router} />
+    </ThemeProvider>
   // </StrictMode>,
 )
